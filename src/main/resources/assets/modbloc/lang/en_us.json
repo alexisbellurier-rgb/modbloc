@@ -6,5 +6,6 @@
   "gui.modbloc.place_item":      "← Target item",
   "gui.modbloc.amount":          "Amount:",
   "gui.modbloc.deposit_section": "Deposit:",
-  "gui.modbloc.goal_reached":    "Goal reached! Take unlimited items."
+  "gui.modbloc.goal_reached":    "Goal reached! Take unlimited items.",
+  "gui.modbloc.not_configured":  "This block has not been configured yet."
 }

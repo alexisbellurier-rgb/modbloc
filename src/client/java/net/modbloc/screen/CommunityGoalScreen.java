@@ -47,7 +47,7 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         amountField = new TextFieldWidget(textRenderer, cx - 35, y + 50, 70, 12,
                 Text.empty());
         amountField.setMaxLength(9);
-        amountField.setText("100");
+        amountField.setText("1000");
         amountField.setVisible(false);
         addDrawableChild(amountField);
 
@@ -98,9 +98,12 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         // Slot backgrounds (vanilla style: dark top/left, light bottom/right, grey interior)
         drawSlot(context, x + TARGET_X, y + TARGET_Y);
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 9; col++) {
-                drawSlot(context, x + DEP_X0 + col * 18, y + DEP_Y0 + row * 18);
+        // Deposit slots only shown once the block is configured
+        if (handler.isSetup()) {
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 9; col++) {
+                    drawSlot(context, x + DEP_X0 + col * 18, y + DEP_Y0 + row * 18);
+                }
             }
         }
         for (int row = 0; row < 3; row++) {

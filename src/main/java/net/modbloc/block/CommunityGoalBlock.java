@@ -44,6 +44,14 @@ public class CommunityGoalBlock extends BlockWithEntity {
         if (!world.isClient) {
             BlockEntity be = world.getBlockEntity(pos);
             if (be instanceof CommunityGoalBlockEntity goalBE) {
+                if (!goalBE.isSetup() && !player.isCreative()) {
+                    // Bloc non configuré : seul le créatif peut ouvrir le setup
+                    player.sendMessage(
+                        net.minecraft.text.Text.translatable("gui.modbloc.not_configured"),
+                        true // actionbar
+                    );
+                    return ActionResult.FAIL;
+                }
                 player.openHandledScreen(goalBE);
             }
         }
