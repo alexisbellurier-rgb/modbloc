@@ -23,7 +23,7 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
     // Slot positions (must match CommunityGoalScreenHandler)
     private static final int TARGET_X = 80, TARGET_Y = 24;
-    private static final int DEP_X0 = 61, DEP_Y0 = 76;
+    private static final int DEP_X0 = 8, DEP_Y0 = 76;
 
     private TextFieldWidget amountField;
     private ButtonWidget    confirmButton;
@@ -99,7 +99,7 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         // Slot backgrounds (vanilla style: dark top/left, light bottom/right, grey interior)
         drawSlot(context, x + TARGET_X, y + TARGET_Y);
         for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
+            for (int col = 0; col < 9; col++) {
                 drawSlot(context, x + DEP_X0 + col * 18, y + DEP_Y0 + row * 18);
             }
         }
@@ -175,14 +175,10 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
             context.drawCenteredTextWithShadow(textRenderer, prog, cx, 65,
                     goalReached ? 0x55FF55 : 0xFFFFFF);
 
-            // Section label above deposit slots (DEP_Y0 = 76, label at 68)
+            // Status above deposit grid (DEP_Y0 = 76, text at 68)
             if (goalReached) {
                 String reached = fit(Text.translatable("gui.modbloc.goal_reached").getString(), MAX_TW);
                 context.drawCenteredTextWithShadow(textRenderer, reached, cx, 68, 0x55FF55);
-            } else {
-                String depLabel = fit(Text.translatable("gui.modbloc.deposit_section").getString(), MAX_TW);
-                context.drawText(textRenderer, depLabel,
-                        DEP_X0, 68, 0x404040, false);
             }
         }
     }

@@ -24,9 +24,9 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     public static final int BUTTON_WITHDRAW = 1;
 
     public static final int TARGET_SLOT   = 0;
-    public static final int DEPOSIT_START = 1;
-    public static final int INV_START     = 10;
-    public static final int HOTBAR_START  = 37;
+    public static final int DEPOSIT_START = 1;   // slots 1-27 (9×3)
+    public static final int INV_START     = 28;  // player inventory 28-54
+    public static final int HOTBAR_START  = 55;  // hotbar 55-63
 
     private final SimpleInventory targetSlot;
     private final SimpleInventory depositInventory;
@@ -67,20 +67,20 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
         this.blockEntity = blockEntity;
 
         checkSize(targetSlot, 1);
-        checkSize(depositInventory, 9);
+        checkSize(depositInventory, 27);
 
-        // Slot 0 — target item (centered horizontally: 176/2 - 8 = 80)
+        // Slot 0 — target item (centered: 176/2 - 8 = 80)
         addSlot(new TargetItemSlot(targetSlot, 0, 80, 24, this));
 
-        // Slots 1-9 — deposit grid 3×3, centered: (176 - 3*18) / 2 = 61
+        // Slots 1-27 — deposit grid 9×3, same x-alignment as player inventory
         for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                addSlot(new DepositSlot(depositInventory, col + row * 3,
-                        61 + col * 18, 76 + row * 18, this));
+            for (int col = 0; col < 9; col++) {
+                addSlot(new DepositSlot(depositInventory, col + row * 9,
+                        8 + col * 18, 76 + row * 18, this));
             }
         }
 
-        // Player inventory (slots 10-36)
+        // Player inventory (slots 28-54)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(playerInventory, col + row * 9 + 9,
@@ -88,7 +88,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
             }
         }
 
-        // Hotbar (slots 37-45)
+        // Hotbar (slots 55-63)
         for (int col = 0; col < 9; col++) {
             addSlot(new Slot(playerInventory, col, 8 + col * 18, 222));
         }

@@ -26,8 +26,8 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         @Override public void markDirty() { CommunityGoalBlockEntity.this.markDirty(); }
     };
 
-    // 9 deposit slots — items placed here are consumed on deposit action.
-    private final SimpleInventory depositInventory = new SimpleInventory(9) {
+    // 27 deposit slots (9×3) — items placed here are consumed on deposit action.
+    private final SimpleInventory depositInventory = new SimpleInventory(27) {
         @Override public void markDirty() { CommunityGoalBlockEntity.this.markDirty(); }
     };
 
