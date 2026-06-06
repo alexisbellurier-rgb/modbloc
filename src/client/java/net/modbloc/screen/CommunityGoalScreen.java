@@ -7,23 +7,41 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.modbloc.network.ModBlocClientPackets;
 
 public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandler> {
 
-    private static final Identifier TEXTURE =
-            Identifier.of("modbloc", "textures/gui/community_goal.png");
+    // ── Dimensions ───────────────────────────────────────────────────────────
+    private static final int BG_W     = CommunityGoalScreenHandler.BG_W;   // 256
+    private static final int BG_H     = 256;
+    private static final int BAR_W    = 180;
+    private static final int BAR_H    = 10;
+    private static final int MAX_TW   = 210;
 
-    private static final int BG_W   = 176;
-    private static final int BG_H   = 240;
-    private static final int BAR_W  = 120;
-    private static final int BAR_H  = 8;
-    private static final int MAX_TW = 140;
+    // Slot grid positions (mirror the handler)
+    private static final int TARGET_X = CommunityGoalScreenHandler.TARGET_SX; // 120
+    private static final int TARGET_Y = CommunityGoalScreenHandler.TARGET_SY; // 34
+    private static final int DEP_X    = CommunityGoalScreenHandler.GRID_LEFT;  // 47
+    private static final int DEP_Y    = CommunityGoalScreenHandler.DEP_SY;     // 82
+    private static final int INV_X    = CommunityGoalScreenHandler.GRID_LEFT;  // 47
+    private static final int INV_Y    = CommunityGoalScreenHandler.INV_SY;     // 170
+    private static final int HOTBAR_Y = CommunityGoalScreenHandler.HOTBAR_SY;  // 226
 
-    private static final int TARGET_X = 80, TARGET_Y = 24;
-    private static final int DEP_X0 = 8,   DEP_Y0 = 76;
+    // ── Colours ──────────────────────────────────────────────────────────────
+    private static final int C_BG         = 0xFF1A1E28;
+    private static final int C_HEADER     = 0xFF12151F;
+    private static final int C_FOOTER     = 0xFF13161F;
+    private static final int C_SEPARATOR  = 0xFF2E3548;
+    private static final int C_SLOT_FILL  = 0xFF0F1218;
+    private static final int C_SLOT_EDGE  = 0xFF2A3040;
+    private static final int C_TEXT       = 0xFFCDD2DE;
+    private static final int C_MUTED      = 0xFF6878A0;
+    private static final int C_GREEN      = 0xFF44BB66;
+    private static final int C_YELLOW     = 0xFFDDA830;
+    private static final int C_BAR_TRACK  = 0xFF0C1018;
+    private static final int C_BAR_BORDER = 0xFF1E2638;
 
+    // ── Widgets ──────────────────────────────────────────────────────────────
     private TextFieldWidget amountField;
     private TextFieldWidget priceField;
     private ButtonWidget    paymentCycleButton;
@@ -31,7 +49,6 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
     private ButtonWidget    depositButton;
     private ButtonWidget    withdrawButton;
 
-    // Client-side state for setup — not synced from server (block not yet configured)
     private int selectedPaymentType = CommunityGoalScreenHandler.PAYMENT_FREE;
 
     public CommunityGoalScreen(CommunityGoalScreenHandler handler,
@@ -44,25 +61,24 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
     @Override
     protected void init() {
         super.init();
-        this.playerInventoryTitleY = 156;
+        this.playerInventoryTitleY = 160;
 
         int cx = x + BG_W / 2;
 
-        // ── Setup widgets ────────────────────────────────────────────────────
-        amountField = new TextFieldWidget(textRenderer, cx - 35, y + 58, 70, 12, Text.empty());
+        // ── Setup widgets ─────────────────────────────────────────────────────
+        amountField = new TextFieldWidget(textRenderer, cx - 45, y + 68, 90, 12, Text.empty());
         amountField.setMaxLength(9);
         amountField.setText("1000");
         amountField.setVisible(false);
         addDrawableChild(amountField);
 
-        // Cycles through PAYMENT_FREE → PAYMENT_COBBLEDOLLARS → PAYMENT_EMERALDS → …
-        paymentCycleButton = ButtonWidget.builder(Text.empty(), btn -> {
-            selectedPaymentType = (selectedPaymentType + 1) % 3;
-        }).dimensions(cx - 60, y + 76, 120, 16).build();
+        paymentCycleButton = ButtonWidget.builder(Text.empty(), btn ->
+                selectedPaymentType = (selectedPaymentType + 1) % 3
+        ).dimensions(cx - 70, y + 88, 140, 16).build();
         paymentCycleButton.visible = false;
         addDrawableChild(paymentCycleButton);
 
-        priceField = new TextFieldWidget(textRenderer, cx - 35, y + 109, 70, 12, Text.empty());
+        priceField = new TextFieldWidget(textRenderer, cx - 45, y + 120, 90, 12, Text.empty());
         priceField.setMaxLength(9);
         priceField.setText("0");
         priceField.setVisible(false);
@@ -70,23 +86,25 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         confirmButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.confirm"), btn -> sendConfirm()
-        ).dimensions(cx - 50, y + 128, 100, 16).build();
+        ).dimensions(cx - 60, y + 140, 120, 16).build();
         confirmButton.visible = false;
         addDrawableChild(confirmButton);
 
-        // ── Play-mode widgets ────────────────────────────────────────────────
+        // ── Play-mode widgets ─────────────────────────────────────────────────
         depositButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.deposit"), btn -> sendDeposit()
-        ).dimensions(cx - 50, y + 130, 100, 16).build();
+        ).dimensions(cx - 60, y + 140, 120, 16).build();
         depositButton.visible = false;
         addDrawableChild(depositButton);
 
         withdrawButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.withdraw"), btn -> sendWithdraw()
-        ).dimensions(cx - 55, y + 130, 110, 16).build();
+        ).dimensions(cx - 65, y + 128, 130, 16).build();
         withdrawButton.visible = false;
         addDrawableChild(withdrawButton);
     }
+
+    // ── Actions ───────────────────────────────────────────────────────────────
 
     private void sendConfirm() {
         int amount;
@@ -99,7 +117,6 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
             try { price = Math.max(0, Integer.parseInt(priceField.getText().trim())); }
             catch (NumberFormatException ignored) {}
         }
-
         ModBlocClientPackets.sendSetupPacket(handler.getBlockPos(), amount, price, selectedPaymentType);
     }
 
@@ -111,47 +128,54 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         client.interactionManager.clickButton(handler.syncId, CommunityGoalScreenHandler.BUTTON_WITHDRAW);
     }
 
-    // ------------------------------------------------------------------
-    // Rendering
-    // ------------------------------------------------------------------
+    // ── Background ────────────────────────────────────────────────────────────
 
     @Override
-    protected void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
-        context.drawTexture(TEXTURE, x, y, 0, 0, BG_W, BG_H);
+    protected void drawBackground(DrawContext ctx, float delta, int mouseX, int mouseY) {
+        // Main background
+        ctx.fill(x, y, x + BG_W, y + BG_H, C_BG);
+
+        // Header bar
+        ctx.fill(x, y, x + BG_W, y + 22, C_HEADER);
+        ctx.fill(x, y + 21, x + BG_W, y + 22, C_SEPARATOR);
+
+        // Footer / player-inventory section
+        ctx.fill(x, y + 154, x + BG_W, y + BG_H, C_FOOTER);
+        ctx.fill(x, y + 154, x + BG_W, y + 155, C_SEPARATOR);
 
         // Target slot
-        drawSlot(context, x + TARGET_X, y + TARGET_Y);
+        drawSlot(ctx, x + TARGET_X, y + TARGET_Y);
 
-        // Deposit grid only before goal is reached
+        // Deposit grid — only in play mode before goal is reached
         if (handler.isConfigured() && !handler.isGoalReached()) {
             for (int row = 0; row < 3; row++) {
                 for (int col = 0; col < 9; col++) {
-                    drawSlot(context, x + DEP_X0 + col * 18, y + DEP_Y0 + row * 18);
+                    drawSlot(ctx, x + DEP_X + col * 18, y + DEP_Y + row * 18);
                 }
             }
         }
 
-        // Player inventory + hotbar
+        // Player inventory (3 rows + hotbar)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                drawSlot(context, x + 8 + col * 18, y + 166 + row * 18);
+                drawSlot(ctx, x + INV_X + col * 18, y + INV_Y + row * 18);
             }
         }
         for (int col = 0; col < 9; col++) {
-            drawSlot(context, x + 8 + col * 18, y + 222);
+            drawSlot(ctx, x + INV_X + col * 18, y + HOTBAR_Y);
         }
     }
 
+    /** Draws a single flat-style slot (1 px border + dark fill). */
     private void drawSlot(DrawContext ctx, int sx, int sy) {
-        ctx.fill(sx - 1, sy - 1, sx + 17, sy,     0xFF373737);
-        ctx.fill(sx - 1, sy,     sx,      sy + 17, 0xFF373737);
-        ctx.fill(sx,     sy + 16, sx + 17, sy + 17, 0xFFFFFFFF);
-        ctx.fill(sx + 16, sy,    sx + 17,  sy + 16, 0xFFFFFFFF);
-        ctx.fill(sx, sy, sx + 16, sy + 16, 0xFF8B8B8B);
+        ctx.fill(sx - 1, sy - 1, sx + 17, sy + 17, C_SLOT_EDGE);
+        ctx.fill(sx,     sy,     sx + 16, sy + 16, C_SLOT_FILL);
     }
 
+    // ── Foreground ────────────────────────────────────────────────────────────
+
     @Override
-    protected void drawForeground(DrawContext context, int mouseX, int mouseY) {
+    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY) {
         boolean configured  = handler.isConfigured();
         boolean goalReached = handler.isGoalReached();
         int target          = handler.getTargetAmount();
@@ -163,75 +187,145 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         boolean showPrice = selectedPaymentType != CommunityGoalScreenHandler.PAYMENT_FREE;
 
-        // Widget visibility
+        // ── Widget visibility ─────────────────────────────────────────────────
         amountField.setVisible(!configured);
         paymentCycleButton.visible = !configured;
         priceField.setVisible(!configured && showPrice);
-        confirmButton.visible   = !configured;
-        depositButton.visible   =  configured && !goalReached;
-        withdrawButton.visible  =  goalReached;
+        confirmButton.visible  = !configured;
+        depositButton.visible  =  configured && !goalReached;
+        withdrawButton.visible =  goalReached;
 
-        // Update cycle button label each frame
+        if (!configured) paymentCycleButton.setMessage(paymentTypeText(selectedPaymentType));
+
+        // ── Title (header) ────────────────────────────────────────────────────
+        String titleStr = fit(title.getString(), BG_W - 24);
+        ctx.drawCenteredTextWithShadow(textRenderer, titleStr, cx, 8, C_TEXT);
+
+        // ── Player inventory label (footer) ───────────────────────────────────
+        String invLabel = playerInventoryTitle.getString();
+        ctx.drawText(textRenderer, invLabel,
+                cx - textRenderer.getWidth(invLabel) / 2,
+                playerInventoryTitleY, C_MUTED, false);
+
+        // ── Mode-specific content ─────────────────────────────────────────────
         if (!configured) {
-            paymentCycleButton.setMessage(paymentTypeText(selectedPaymentType));
+            drawSetupContent(ctx, cx, showPrice);
+        } else if (!goalReached) {
+            drawPlayContent(ctx, cx, current, target, targetItem);
+        } else {
+            drawGoalReachedContent(ctx, cx, current, target, price, paymentType, targetItem);
+        }
+    }
+
+    // ── Setup content ─────────────────────────────────────────────────────────
+
+    private void drawSetupContent(DrawContext ctx, int cx, boolean showPrice) {
+        // Hint next to the target slot
+        String hint = fit(Text.translatable("gui.modbloc.place_item").getString(), 90);
+        ctx.drawText(textRenderer, hint, TARGET_X + 20, TARGET_Y + 4, C_MUTED, false);
+
+        separator(ctx, 56);
+
+        // Amount section
+        String amtLabel = fit(Text.translatable("gui.modbloc.amount").getString(), MAX_TW);
+        ctx.drawCenteredTextWithShadow(textRenderer, amtLabel, cx, 60, C_TEXT);
+
+        // Payment section
+        String monLabel = fit(Text.translatable("gui.modbloc.payment_label").getString(), MAX_TW);
+        ctx.drawCenteredTextWithShadow(textRenderer, monLabel, cx, 80, C_MUTED);
+
+        // Price section (conditional)
+        if (showPrice) {
+            String priceLabel = fit(Text.translatable("gui.modbloc.price").getString(), MAX_TW);
+            ctx.drawCenteredTextWithShadow(textRenderer, priceLabel, cx, 110, C_MUTED);
         }
 
-        // Title
-        String titleStr = fit(title.getString(), BG_W - 16);
-        context.drawText(textRenderer, titleStr,
-                cx - textRenderer.getWidth(titleStr) / 2, 6, 0x404040, false);
+        separator(ctx, 134);
+    }
 
-        // Player inventory label
-        context.drawText(textRenderer, playerInventoryTitle,
-                playerInventoryTitleX, playerInventoryTitleY, 0x404040, false);
+    // ── Play content (deposit phase) ──────────────────────────────────────────
 
-        if (!configured) {
-            // ── SETUP MODE ───────────────────────────────────────────────────
-            String hint = fit(Text.translatable("gui.modbloc.place_item").getString(), 68);
-            context.drawText(textRenderer, hint, TARGET_X + 18, TARGET_Y + 4, 0x606060, false);
+    private void drawPlayContent(DrawContext ctx, int cx,
+                                  int current, int target, ItemStack targetItem) {
+        // Item name
+        if (!targetItem.isEmpty()) {
+            ctx.drawCenteredTextWithShadow(textRenderer,
+                    fit(targetItem.getName().getString(), MAX_TW), cx, 26, C_TEXT);
+        }
 
-            String amtLabel = fit(Text.translatable("gui.modbloc.amount").getString(), MAX_TW);
-            context.drawText(textRenderer, amtLabel,
-                    cx - textRenderer.getWidth(amtLabel) / 2, 46, 0x404040, false);
+        separator(ctx, 56);
 
-            if (showPrice) {
-                String priceLabel = fit(Text.translatable("gui.modbloc.price").getString(), MAX_TW);
-                context.drawText(textRenderer, priceLabel,
-                        cx - textRenderer.getWidth(priceLabel) / 2, 97, 0x404040, false);
+        // Progress
+        drawBar(ctx, cx, 62, current, target, false);
+        String prog = current + " / " + target;
+        ctx.drawCenteredTextWithShadow(textRenderer, fit(prog, MAX_TW), cx, 76, C_MUTED);
+    }
+
+    // ── Goal-reached content ──────────────────────────────────────────────────
+
+    private void drawGoalReachedContent(DrawContext ctx, int cx,
+                                         int current, int target,
+                                         int price, int paymentType,
+                                         ItemStack targetItem) {
+        // Item name
+        if (!targetItem.isEmpty()) {
+            ctx.drawCenteredTextWithShadow(textRenderer,
+                    fit(targetItem.getName().getString(), MAX_TW), cx, 26, C_TEXT);
+        }
+
+        separator(ctx, 56);
+
+        // Progress bar (green, full)
+        drawBar(ctx, cx, 64, current, target, true);
+
+        String prog = current + " / " + target;
+        ctx.drawCenteredTextWithShadow(textRenderer, fit(prog, MAX_TW), cx, 78, C_GREEN);
+
+        // Price line
+        if (price > 0 && paymentType != CommunityGoalScreenHandler.PAYMENT_FREE) {
+            String priceStr = switch (paymentType) {
+                case CommunityGoalScreenHandler.PAYMENT_COBBLEDOLLARS ->
+                        fit(Text.translatable("gui.modbloc.price_display_dollars",
+                                String.format("%,d", price)).getString(), MAX_TW);
+                case CommunityGoalScreenHandler.PAYMENT_EMERALDS ->
+                        fit(Text.translatable("gui.modbloc.price_display_emeralds",
+                                price).getString(), MAX_TW);
+                default -> "";
+            };
+            if (!priceStr.isEmpty()) {
+                int color = paymentType == CommunityGoalScreenHandler.PAYMENT_EMERALDS
+                        ? C_GREEN : C_YELLOW;
+                ctx.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 92, color);
             }
+        }
 
-        } else {
-            // ── PLAY MODE ────────────────────────────────────────────────────
+        separator(ctx, 112);
+    }
 
-            if (!targetItem.isEmpty()) {
-                String name = fit(targetItem.getName().getString(), MAX_TW);
-                context.drawText(textRenderer, name,
-                        cx - textRenderer.getWidth(name) / 2, 34, 0x404040, false);
-            }
+    // ── Drawing helpers ───────────────────────────────────────────────────────
 
-            drawProgressBar(context, cx, 44, current, target, goalReached);
+    /** Draws a thin horizontal separator line (local coords). */
+    private void separator(DrawContext ctx, int localY) {
+        ctx.fill(16, localY, BG_W - 16, localY + 1, C_SEPARATOR);
+    }
 
-            String prog = fit(current + " / " + target, MAX_TW);
-            context.drawCenteredTextWithShadow(textRenderer, prog, cx, 55,
-                    goalReached ? 0x55FF55 : 0xFFFFFF);
+    /** Draws the progress bar centred at cx (local coords). */
+    private void drawBar(DrawContext ctx, int cx, int barY,
+                          int current, int target, boolean goalReached) {
+        int bx    = cx - BAR_W / 2;
+        float pct = target > 0 ? Math.min(1f, (float) current / target) : 0f;
 
-            // Price — only when goal is reached and a price is set
-            if (goalReached && price > 0 && paymentType != CommunityGoalScreenHandler.PAYMENT_FREE) {
-                String priceStr = switch (paymentType) {
-                    case CommunityGoalScreenHandler.PAYMENT_COBBLEDOLLARS ->
-                            fit(Text.translatable("gui.modbloc.price_display_dollars",
-                                    String.format("%,d", price)).getString(), MAX_TW);
-                    case CommunityGoalScreenHandler.PAYMENT_EMERALDS ->
-                            fit(Text.translatable("gui.modbloc.price_display_emeralds",
-                                    price).getString(), MAX_TW);
-                    default -> "";
-                };
-                if (!priceStr.isEmpty()) {
-                    int color = paymentType == CommunityGoalScreenHandler.PAYMENT_EMERALDS
-                            ? 0x55FF55 : 0xFFDD44;
-                    context.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 65, color);
-                }
-            }
+        // Track
+        ctx.fill(bx - 1, barY - 1, bx + BAR_W + 1, barY + BAR_H + 1, C_BAR_BORDER);
+        ctx.fill(bx,     barY,     bx + BAR_W,     barY + BAR_H,     C_BAR_TRACK);
+
+        // Fill
+        int fw = (int) (BAR_W * pct);
+        if (fw > 0) {
+            int fillColor = goalReached ? 0xFF3AA85E : 0xFF3A78CC;
+            int shineColor = goalReached ? 0xFF52CC7C : 0xFF5296E0;
+            ctx.fill(bx, barY,     bx + fw, barY + BAR_H, fillColor);
+            ctx.fill(bx, barY,     bx + fw, barY + 2,     shineColor); // top shine
         }
     }
 
@@ -245,24 +339,10 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         };
     }
 
-    private void drawProgressBar(DrawContext ctx, int cx, int barY,
-                                  int current, int target, boolean goalReached) {
-        int bx = cx - BAR_W / 2;
-        float ratio = target > 0 ? Math.min(1f, (float) current / target) : 0f;
-
-        ctx.fill(bx - 1, barY - 1, bx + BAR_W + 1, barY + BAR_H + 1, 0xFF555555);
-        ctx.fill(bx, barY, bx + BAR_W, barY + BAR_H, 0xFF222222);
-
-        int fw = (int) (BAR_W * ratio);
-        if (fw > 0) {
-            ctx.fill(bx, barY, bx + fw, barY + BAR_H, goalReached ? 0xFF55CC55 : 0xFF4488FF);
-        }
-    }
-
     private String fit(String text, int maxWidth) {
         if (textRenderer.getWidth(text) <= maxWidth) return text;
-        String ellipsis = "…";
-        return textRenderer.trimToWidth(text, maxWidth - textRenderer.getWidth(ellipsis)) + ellipsis;
+        String ell = "…";
+        return textRenderer.trimToWidth(text, maxWidth - textRenderer.getWidth(ell)) + ell;
     }
 
     @Override

@@ -6,6 +6,7 @@
   "gui.modbloc.place_item":             "← Item cible",
   "gui.modbloc.amount":                 "Quantité :",
   "gui.modbloc.price":                  "Prix par retrait :",
+  "gui.modbloc.payment_label":          "Monnaie :",
   "gui.modbloc.payment_free":           "Gratuit",
   "gui.modbloc.payment_cobbledollars":  "CobbleDollars",
   "gui.modbloc.payment_emeralds":       "Émeraudes",
