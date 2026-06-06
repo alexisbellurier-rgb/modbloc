@@ -5,6 +5,8 @@
   "gui.modbloc.withdraw":        "Prendre l'objet",
   "gui.modbloc.place_item":      "← Item cible",
   "gui.modbloc.amount":          "Quantité :",
+  "gui.modbloc.price":           "Prix par stack (CobbleDollars) :",
+  "gui.modbloc.price_display":   "Prix : %s $",
   "gui.modbloc.deposit_section": "Dépôt :",
   "gui.modbloc.goal_reached":    "Objectif atteint ! Prenez à volonté.",
   "gui.modbloc.not_configured":  "Ce bloc n'est pas encore configuré."

@@ -22,7 +22,8 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     public static final int PROP_CURRENT_AMOUNT = 1;
     public static final int PROP_IS_SETUP       = 2;
     public static final int PROP_GOAL_REACHED   = 3;
-    private static final int PROP_COUNT         = 4;
+    public static final int PROP_PRICE_PER_STACK = 4;
+    private static final int PROP_COUNT          = 5;
 
     public static final int BUTTON_DEPOSIT  = 0;
     public static final int BUTTON_WITHDRAW = 1;
@@ -128,6 +129,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
 
     public int getTargetAmount()   { return propertyDelegate.get(PROP_TARGET_AMOUNT); }
     public int getCurrentAmount()  { return propertyDelegate.get(PROP_CURRENT_AMOUNT); }
+    public int getPricePerStack()  { return propertyDelegate.get(PROP_PRICE_PER_STACK); }
     public boolean isSetup()       { return propertyDelegate.get(PROP_IS_SETUP) == 1; }
     public boolean isGoalReached() { return propertyDelegate.get(PROP_GOAL_REACHED) == 1; }
     public ItemStack getTargetItem() { return slots.get(TARGET_SLOT).getStack(); }
@@ -141,7 +143,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
         if (blockEntity == null) return false;
         return switch (id) {
             case BUTTON_DEPOSIT  -> { blockEntity.depositItems(player); yield true; }
-            case BUTTON_WITHDRAW -> { blockEntity.withdrawItem(player); yield true; }
+            case BUTTON_WITHDRAW -> { yield blockEntity.withdrawItem(player); }
             default -> false;
         };
     }
@@ -191,6 +193,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
                     case PROP_CURRENT_AMOUNT -> be.getCurrentAmount();
                     case PROP_IS_SETUP       -> be.isSetup() ? 1 : 0;
                     case PROP_GOAL_REACHED   -> be.isGoalReached() ? 1 : 0;
+                    case PROP_PRICE_PER_STACK -> be.getPricePerStack();
                     default -> 0;
                 };
             }

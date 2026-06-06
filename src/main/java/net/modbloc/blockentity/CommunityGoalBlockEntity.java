@@ -1,5 +1,6 @@
 package net.modbloc.blockentity;
 
+import fr.harmex.cobbledollars.common.utils.extensions.PlayerExtensionKt;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
@@ -19,6 +20,8 @@ import net.modbloc.registry.ModBlocBlockEntities;
 import net.modbloc.screen.CommunityGoalScreenHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.math.BigInteger;
+
 public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<CommunityGoalScreenHandler.OpenData> {
 
     // The target item is stored in this 1-slot inventory (slot syncs automatically via screen handler).
@@ -33,6 +36,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
 
     private int targetAmount = 100;
     private int currentAmount = 0;
+    private int pricePerStack = 0;
     private boolean isSetup = false;
 
     // Used by the client-side renderer for item rotation animation.
@@ -56,14 +60,16 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     public ItemStack getTargetItem() { return targetSlot.getStack(0); }
     public int getTargetAmount() { return targetAmount; }
     public int getCurrentAmount() { return currentAmount; }
+    public int getPricePerStack() { return pricePerStack; }
     public boolean isSetup() { return isSetup; }
     public boolean isGoalReached() { return currentAmount >= targetAmount; }
 
     // --- Setup ---
 
-    public void setup(ItemStack targetItem, int amount) {
+    public void setup(ItemStack targetItem, int amount, int price) {
         targetSlot.setStack(0, targetItem.copyWithCount(1));
         this.targetAmount = Math.max(1, amount);
+        this.pricePerStack = Math.max(0, price);
         this.currentAmount = 0;
         this.isSetup = true;
         markDirty();
@@ -95,11 +101,22 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         if (world != null) world.updateListeners(pos, getCachedState(), getCachedState(), 3);
     }
 
-    /** Called server-side when player clicks Withdraw (goal reached). */
-    public void withdrawItem(PlayerEntity player) {
-        if (!isGoalReached()) return;
-        ItemStack gift = getTargetItem().copyWithCount(getTargetItem().getMaxCount());
-        player.giveItemStack(gift);
+    /** Called server-side when player clicks Withdraw (goal reached). Returns false if insufficient funds. */
+    public boolean withdrawItem(PlayerEntity player) {
+        if (!isGoalReached()) return false;
+        if (pricePerStack > 0) {
+            BigInteger price = BigInteger.valueOf(pricePerStack);
+            if (!PlayerExtensionKt.canBuy(player, price)) {
+                player.sendMessage(Text.literal("Solde insuffisant ! Prix : " + pricePerStack + " $"), true);
+                return false;
+            }
+            PlayerExtensionKt.setCobbleDollars(player, PlayerExtensionKt.getCobbleDollars(player).subtract(price));
+            if (player instanceof ServerPlayerEntity sp) {
+                PlayerExtensionKt.updateCobbleDollarsAccount(sp);
+            }
+        }
+        player.giveItemStack(getTargetItem().copyWithCount(getTargetItem().getMaxCount()));
+        return true;
     }
 
     // --- NBT ---
@@ -109,6 +126,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         super.writeNbt(nbt, registries);
         nbt.putInt("TargetAmount", targetAmount);
         nbt.putInt("CurrentAmount", currentAmount);
+        nbt.putInt("PricePerStack", pricePerStack);
         nbt.putBoolean("IsSetup", isSetup);
 
         if (!targetSlot.getStack(0).isEmpty()) {
@@ -130,6 +148,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         super.readNbt(nbt, registries);
         targetAmount = nbt.getInt("TargetAmount");
         currentAmount = nbt.getInt("CurrentAmount");
+        pricePerStack = nbt.getInt("PricePerStack");
         isSetup = nbt.getBoolean("IsSetup");
 
         if (nbt.contains("TargetItem", NbtElement.COMPOUND_TYPE)) {

@@ -25,6 +25,7 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
     private static final int DEP_X0 = 8,   DEP_Y0 = 76;
 
     private TextFieldWidget amountField;
+    private TextFieldWidget priceField;
     private ButtonWidget    confirmButton;
     private ButtonWidget    depositButton;
     private ButtonWidget    withdrawButton;
@@ -44,15 +45,21 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         int cx = x + BG_W / 2;
 
         // Setup widgets: vertically centered in the content area (y=24 to y=150)
-        amountField = new TextFieldWidget(textRenderer, cx - 35, y + 83, 70, 12, Text.empty());
+        amountField = new TextFieldWidget(textRenderer, cx - 35, y + 65, 70, 12, Text.empty());
         amountField.setMaxLength(9);
         amountField.setText("1000");
         amountField.setVisible(false);
         addDrawableChild(amountField);
 
+        priceField = new TextFieldWidget(textRenderer, cx - 35, y + 95, 70, 12, Text.empty());
+        priceField.setMaxLength(9);
+        priceField.setText("0");
+        priceField.setVisible(false);
+        addDrawableChild(priceField);
+
         confirmButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.confirm"), btn -> sendConfirm()
-        ).dimensions(cx - 50, y + 99, 100, 16).build();
+        ).dimensions(cx - 50, y + 113, 100, 16).build();
         confirmButton.visible = false;
         addDrawableChild(confirmButton);
 
@@ -74,7 +81,14 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         int amount;
         try { amount = Integer.parseInt(amountField.getText().trim()); }
         catch (NumberFormatException e) { return; }
-        if (amount > 0) ModBlocClientPackets.sendSetupPacket(handler.getBlockPos(), amount);
+        if (amount <= 0) return;
+
+        int price;
+        try { price = Integer.parseInt(priceField.getText().trim()); }
+        catch (NumberFormatException e) { price = 0; }
+        price = Math.max(0, price);
+
+        ModBlocClientPackets.sendSetupPacket(handler.getBlockPos(), amount, price);
     }
 
     private void sendDeposit() {
@@ -130,11 +144,13 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         boolean goalReached = handler.isGoalReached();
         int target          = handler.getTargetAmount();
         int current         = handler.getCurrentAmount();
+        int price           = handler.getPricePerStack();
         ItemStack targetItem = handler.getTargetItem();
         int cx              = BG_W / 2;
 
         // Widget visibility
         amountField.setVisible(!configured);
+        priceField.setVisible(!configured);
         confirmButton.visible   = !configured;
         depositButton.visible   =  configured && !goalReached;
         withdrawButton.visible  =  goalReached;
@@ -150,14 +166,16 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         if (!configured) {
             // ── SETUP MODE ───────────────────────────────────────────────────
-            // Hint to the right of the target slot
             String hint = fit(Text.translatable("gui.modbloc.place_item").getString(), 68);
             context.drawText(textRenderer, hint, TARGET_X + 18, TARGET_Y + 4, 0x606060, false);
 
-            // Amount label centered above the field (field widget at container-y=83)
             String amtLabel = fit(Text.translatable("gui.modbloc.amount").getString(), MAX_TW);
             context.drawText(textRenderer, amtLabel,
-                    cx - textRenderer.getWidth(amtLabel) / 2, 70, 0x404040, false);
+                    cx - textRenderer.getWidth(amtLabel) / 2, 53, 0x404040, false);
+
+            String priceLabel = fit(Text.translatable("gui.modbloc.price").getString(), MAX_TW);
+            context.drawText(textRenderer, priceLabel,
+                    cx - textRenderer.getWidth(priceLabel) / 2, 83, 0x404040, false);
 
         } else {
             // ── PLAY MODE ────────────────────────────────────────────────────
@@ -166,16 +184,23 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
             if (!targetItem.isEmpty()) {
                 String name = fit(targetItem.getName().getString(), MAX_TW);
                 context.drawText(textRenderer, name,
-                        cx - textRenderer.getWidth(name) / 2, 44, 0x404040, false);
+                        cx - textRenderer.getWidth(name) / 2, 34, 0x404040, false);
             }
 
             // Progress bar
-            drawProgressBar(context, cx, 54, current, target, goalReached);
+            drawProgressBar(context, cx, 44, current, target, goalReached);
 
             // Progress numbers
             String prog = fit(current + " / " + target, MAX_TW);
-            context.drawCenteredTextWithShadow(textRenderer, prog, cx, 65,
+            context.drawCenteredTextWithShadow(textRenderer, prog, cx, 55,
                     goalReached ? 0x55FF55 : 0xFFFFFF);
+
+            // Price (only if non-zero)
+            if (price > 0) {
+                String priceStr = fit(Text.translatable("gui.modbloc.price_display",
+                        String.format("%,d", price)).getString(), MAX_TW);
+                context.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 65, 0xFFDD44);
+            }
         }
     }
 
