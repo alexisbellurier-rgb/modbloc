@@ -58,10 +58,13 @@ public class CommunityGoalBlock extends BlockWithEntity {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state,
                                                                               BlockEntityType<T> type) {
-        return world.isClient
-                ? checkType(type, ModBlocBlockEntities.COMMUNITY_GOAL_BLOCK_ENTITY, CommunityGoalBlockEntity::clientTick)
-                : null;
+        if (!world.isClient) return null;
+        if (type == ModBlocBlockEntities.COMMUNITY_GOAL_BLOCK_ENTITY) {
+            return (BlockEntityTicker<T>) (BlockEntityTicker<CommunityGoalBlockEntity>) CommunityGoalBlockEntity::clientTick;
+        }
+        return null;
     }
 }
