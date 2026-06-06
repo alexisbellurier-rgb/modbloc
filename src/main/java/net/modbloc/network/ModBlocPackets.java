@@ -18,7 +18,7 @@ public class ModBlocPackets {
     // C2S: Setup payload — sent when a creative player confirms the block goal
     // -----------------------------------------------------------------------
 
-    public record SetupPayload(BlockPos pos, int targetAmount, int pricePerStack) implements CustomPayload {
+    public record SetupPayload(BlockPos pos, int targetAmount, int pricePerStack, int paymentType) implements CustomPayload {
 
         public static final Id<SetupPayload> ID = new Id<>(net.minecraft.util.Identifier.of("modbloc", "setup"));
 
@@ -27,6 +27,7 @@ public class ModBlocPackets {
                         BlockPos.PACKET_CODEC, SetupPayload::pos,
                         PacketCodecs.VAR_INT,   SetupPayload::targetAmount,
                         PacketCodecs.VAR_INT,   SetupPayload::pricePerStack,
+                        PacketCodecs.VAR_INT,   SetupPayload::paymentType,
                         SetupPayload::new
                 );
 
@@ -59,7 +60,7 @@ public class ModBlocPackets {
                 int amount = payload.targetAmount();
                 if (amount <= 0) return;
 
-                be.setup(targetItem, amount, payload.pricePerStack());
+                be.setup(targetItem, amount, payload.pricePerStack(), payload.paymentType());
                 world.updateListeners(pos, world.getBlockState(pos), world.getBlockState(pos), Block.NOTIFY_ALL);
                 // Close setup screen — player reopens the block to get the play-mode screen
                 player.closeHandledScreen();

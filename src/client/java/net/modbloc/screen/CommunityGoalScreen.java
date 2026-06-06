@@ -26,9 +26,13 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
     private TextFieldWidget amountField;
     private TextFieldWidget priceField;
+    private ButtonWidget    paymentCycleButton;
     private ButtonWidget    confirmButton;
     private ButtonWidget    depositButton;
     private ButtonWidget    withdrawButton;
+
+    // Client-side state for setup — not synced from server (block not yet configured)
+    private int selectedPaymentType = CommunityGoalScreenHandler.PAYMENT_FREE;
 
     public CommunityGoalScreen(CommunityGoalScreenHandler handler,
                                 PlayerInventory inventory, Text title) {
@@ -44,14 +48,21 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         int cx = x + BG_W / 2;
 
-        // Setup widgets: vertically centered in the content area (y=24 to y=150)
-        amountField = new TextFieldWidget(textRenderer, cx - 35, y + 65, 70, 12, Text.empty());
+        // ── Setup widgets ────────────────────────────────────────────────────
+        amountField = new TextFieldWidget(textRenderer, cx - 35, y + 58, 70, 12, Text.empty());
         amountField.setMaxLength(9);
         amountField.setText("1000");
         amountField.setVisible(false);
         addDrawableChild(amountField);
 
-        priceField = new TextFieldWidget(textRenderer, cx - 35, y + 95, 70, 12, Text.empty());
+        // Cycles through PAYMENT_FREE → PAYMENT_COBBLEDOLLARS → PAYMENT_EMERALDS → …
+        paymentCycleButton = ButtonWidget.builder(Text.empty(), btn -> {
+            selectedPaymentType = (selectedPaymentType + 1) % 3;
+        }).dimensions(cx - 60, y + 76, 120, 16).build();
+        paymentCycleButton.visible = false;
+        addDrawableChild(paymentCycleButton);
+
+        priceField = new TextFieldWidget(textRenderer, cx - 35, y + 109, 70, 12, Text.empty());
         priceField.setMaxLength(9);
         priceField.setText("0");
         priceField.setVisible(false);
@@ -59,11 +70,11 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         confirmButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.confirm"), btn -> sendConfirm()
-        ).dimensions(cx - 50, y + 113, 100, 16).build();
+        ).dimensions(cx - 50, y + 128, 100, 16).build();
         confirmButton.visible = false;
         addDrawableChild(confirmButton);
 
-        // Play-mode widgets
+        // ── Play-mode widgets ────────────────────────────────────────────────
         depositButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.deposit"), btn -> sendDeposit()
         ).dimensions(cx - 50, y + 130, 100, 16).build();
@@ -83,12 +94,13 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         catch (NumberFormatException e) { return; }
         if (amount <= 0) return;
 
-        int price;
-        try { price = Integer.parseInt(priceField.getText().trim()); }
-        catch (NumberFormatException e) { price = 0; }
-        price = Math.max(0, price);
+        int price = 0;
+        if (selectedPaymentType != CommunityGoalScreenHandler.PAYMENT_FREE) {
+            try { price = Math.max(0, Integer.parseInt(priceField.getText().trim())); }
+            catch (NumberFormatException ignored) {}
+        }
 
-        ModBlocClientPackets.sendSetupPacket(handler.getBlockPos(), amount, price);
+        ModBlocClientPackets.sendSetupPacket(handler.getBlockPos(), amount, price, selectedPaymentType);
     }
 
     private void sendDeposit() {
@@ -110,7 +122,7 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         // Target slot
         drawSlot(context, x + TARGET_X, y + TARGET_Y);
 
-        // Deposit grid only in play mode and before goal is reached
+        // Deposit grid only before goal is reached
         if (handler.isConfigured() && !handler.isGoalReached()) {
             for (int row = 0; row < 3; row++) {
                 for (int col = 0; col < 9; col++) {
@@ -145,15 +157,24 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         int target          = handler.getTargetAmount();
         int current         = handler.getCurrentAmount();
         int price           = handler.getPricePerStack();
+        int paymentType     = handler.getPaymentType();
         ItemStack targetItem = handler.getTargetItem();
         int cx              = BG_W / 2;
 
+        boolean showPrice = selectedPaymentType != CommunityGoalScreenHandler.PAYMENT_FREE;
+
         // Widget visibility
         amountField.setVisible(!configured);
-        priceField.setVisible(!configured);
+        paymentCycleButton.visible = !configured;
+        priceField.setVisible(!configured && showPrice);
         confirmButton.visible   = !configured;
         depositButton.visible   =  configured && !goalReached;
         withdrawButton.visible  =  goalReached;
+
+        // Update cycle button label each frame
+        if (!configured) {
+            paymentCycleButton.setMessage(paymentTypeText(selectedPaymentType));
+        }
 
         // Title
         String titleStr = fit(title.getString(), BG_W - 16);
@@ -171,37 +192,57 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
             String amtLabel = fit(Text.translatable("gui.modbloc.amount").getString(), MAX_TW);
             context.drawText(textRenderer, amtLabel,
-                    cx - textRenderer.getWidth(amtLabel) / 2, 53, 0x404040, false);
+                    cx - textRenderer.getWidth(amtLabel) / 2, 46, 0x404040, false);
 
-            String priceLabel = fit(Text.translatable("gui.modbloc.price").getString(), MAX_TW);
-            context.drawText(textRenderer, priceLabel,
-                    cx - textRenderer.getWidth(priceLabel) / 2, 83, 0x404040, false);
+            if (showPrice) {
+                String priceLabel = fit(Text.translatable("gui.modbloc.price").getString(), MAX_TW);
+                context.drawText(textRenderer, priceLabel,
+                        cx - textRenderer.getWidth(priceLabel) / 2, 97, 0x404040, false);
+            }
 
         } else {
             // ── PLAY MODE ────────────────────────────────────────────────────
 
-            // Item name below the target slot
             if (!targetItem.isEmpty()) {
                 String name = fit(targetItem.getName().getString(), MAX_TW);
                 context.drawText(textRenderer, name,
                         cx - textRenderer.getWidth(name) / 2, 34, 0x404040, false);
             }
 
-            // Progress bar
             drawProgressBar(context, cx, 44, current, target, goalReached);
 
-            // Progress numbers
             String prog = fit(current + " / " + target, MAX_TW);
             context.drawCenteredTextWithShadow(textRenderer, prog, cx, 55,
                     goalReached ? 0x55FF55 : 0xFFFFFF);
 
-            // Price — only shown when goal is reached and price is non-zero
-            if (goalReached && price > 0) {
-                String priceStr = fit(Text.translatable("gui.modbloc.price_display",
-                        String.format("%,d", price)).getString(), MAX_TW);
-                context.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 65, 0xFFDD44);
+            // Price — only when goal is reached and a price is set
+            if (goalReached && price > 0 && paymentType != CommunityGoalScreenHandler.PAYMENT_FREE) {
+                String priceStr = switch (paymentType) {
+                    case CommunityGoalScreenHandler.PAYMENT_COBBLEDOLLARS ->
+                            fit(Text.translatable("gui.modbloc.price_display_dollars",
+                                    String.format("%,d", price)).getString(), MAX_TW);
+                    case CommunityGoalScreenHandler.PAYMENT_EMERALDS ->
+                            fit(Text.translatable("gui.modbloc.price_display_emeralds",
+                                    price).getString(), MAX_TW);
+                    default -> "";
+                };
+                if (!priceStr.isEmpty()) {
+                    int color = paymentType == CommunityGoalScreenHandler.PAYMENT_EMERALDS
+                            ? 0x55FF55 : 0xFFDD44;
+                    context.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 65, color);
+                }
             }
         }
+    }
+
+    private Text paymentTypeText(int type) {
+        return switch (type) {
+            case CommunityGoalScreenHandler.PAYMENT_COBBLEDOLLARS ->
+                    Text.translatable("gui.modbloc.payment_cobbledollars");
+            case CommunityGoalScreenHandler.PAYMENT_EMERALDS ->
+                    Text.translatable("gui.modbloc.payment_emeralds");
+            default -> Text.translatable("gui.modbloc.payment_free");
+        };
     }
 
     private void drawProgressBar(DrawContext ctx, int cx, int barY,

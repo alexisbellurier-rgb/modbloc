@@ -8,6 +8,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.modbloc.screen.CommunityGoalScreenHandler;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryWrapper;
@@ -36,6 +38,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     private int targetAmount = 100;
     private int currentAmount = 0;
     private int pricePerStack = 0;
+    private int paymentType = CommunityGoalScreenHandler.PAYMENT_FREE;
     private boolean isSetup = false;
 
     // Used by the client-side renderer for item rotation animation.
@@ -60,15 +63,17 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     public int getTargetAmount() { return targetAmount; }
     public int getCurrentAmount() { return currentAmount; }
     public int getPricePerStack() { return pricePerStack; }
+    public int getPaymentType()   { return paymentType; }
     public boolean isSetup() { return isSetup; }
     public boolean isGoalReached() { return currentAmount >= targetAmount; }
 
     // --- Setup ---
 
-    public void setup(ItemStack targetItem, int amount, int price) {
+    public void setup(ItemStack targetItem, int amount, int price, int payment) {
         targetSlot.setStack(0, targetItem.copyWithCount(1));
         this.targetAmount = Math.max(1, amount);
         this.pricePerStack = Math.max(0, price);
+        this.paymentType = payment;
         this.currentAmount = 0;
         this.isSetup = true;
         markDirty();
@@ -103,15 +108,49 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     /** Called server-side when player clicks Withdraw (goal reached). Returns false if insufficient funds. */
     public boolean withdrawItem(PlayerEntity player) {
         if (!isGoalReached()) return false;
-        if (pricePerStack > 0 && CobbleDollarsCompat.isLoaded()) {
-            if (!CobbleDollarsCompat.canAfford(player, pricePerStack)) {
-                player.sendMessage(Text.literal("Solde insuffisant ! Prix : " + pricePerStack + " $"), true);
-                return false;
+        if (pricePerStack > 0) {
+            switch (paymentType) {
+                case CommunityGoalScreenHandler.PAYMENT_COBBLEDOLLARS -> {
+                    if (CobbleDollarsCompat.isLoaded()) {
+                        if (!CobbleDollarsCompat.canAfford(player, pricePerStack)) {
+                            player.sendMessage(Text.literal("Solde insuffisant ! Prix : " + pricePerStack + " $"), true);
+                            return false;
+                        }
+                        CobbleDollarsCompat.charge(player, pricePerStack);
+                    }
+                }
+                case CommunityGoalScreenHandler.PAYMENT_EMERALDS -> {
+                    if (countEmeralds(player) < pricePerStack) {
+                        player.sendMessage(Text.literal("Pas assez d'émeraudes ! Prix : " + pricePerStack), true);
+                        return false;
+                    }
+                    removeEmeralds(player, pricePerStack);
+                }
             }
-            CobbleDollarsCompat.charge(player, pricePerStack);
         }
         player.giveItemStack(getTargetItem().copyWithCount(getTargetItem().getMaxCount()));
         return true;
+    }
+
+    private static int countEmeralds(PlayerEntity player) {
+        int count = 0;
+        for (int i = 0; i < player.getInventory().main.size(); i++) {
+            ItemStack s = player.getInventory().main.get(i);
+            if (s.isOf(Items.EMERALD)) count += s.getCount();
+        }
+        return count;
+    }
+
+    private static void removeEmeralds(PlayerEntity player, int amount) {
+        int remaining = amount;
+        for (int i = 0; i < player.getInventory().main.size() && remaining > 0; i++) {
+            ItemStack s = player.getInventory().main.get(i);
+            if (s.isOf(Items.EMERALD)) {
+                int take = Math.min(s.getCount(), remaining);
+                s.decrement(take);
+                remaining -= take;
+            }
+        }
     }
 
     // --- NBT ---
@@ -122,6 +161,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         nbt.putInt("TargetAmount", targetAmount);
         nbt.putInt("CurrentAmount", currentAmount);
         nbt.putInt("PricePerStack", pricePerStack);
+        nbt.putInt("PaymentType", paymentType);
         nbt.putBoolean("IsSetup", isSetup);
 
         if (!targetSlot.getStack(0).isEmpty()) {
@@ -144,6 +184,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         targetAmount = nbt.getInt("TargetAmount");
         currentAmount = nbt.getInt("CurrentAmount");
         pricePerStack = nbt.getInt("PricePerStack");
+        paymentType = nbt.getInt("PaymentType");
         isSetup = nbt.getBoolean("IsSetup");
 
         if (nbt.contains("TargetItem", NbtElement.COMPOUND_TYPE)) {

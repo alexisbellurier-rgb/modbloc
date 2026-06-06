@@ -5,7 +5,7 @@ import net.minecraft.util.math.BlockPos;
 
 public class ModBlocClientPackets {
 
-    public static void sendSetupPacket(BlockPos pos, int amount, int price) {
-        ClientPlayNetworking.send(new ModBlocPackets.SetupPayload(pos, amount, price));
+    public static void sendSetupPacket(BlockPos pos, int amount, int price, int paymentType) {
+        ClientPlayNetworking.send(new ModBlocPackets.SetupPayload(pos, amount, price, paymentType));
     }
 }

@@ -1,13 +1,17 @@
 {
   "block.modbloc.community_goal_block": "Community Goal Block",
-  "gui.modbloc.confirm":         "Confirm",
-  "gui.modbloc.deposit":         "Deposit",
-  "gui.modbloc.withdraw":        "Take Item",
-  "gui.modbloc.place_item":      "← Target item",
-  "gui.modbloc.amount":          "Amount:",
-  "gui.modbloc.price":           "Price per stack (CobbleDollars):",
-  "gui.modbloc.price_display":   "Price: %s $",
-  "gui.modbloc.deposit_section": "Deposit:",
-  "gui.modbloc.goal_reached":    "Goal reached! Take unlimited items.",
-  "gui.modbloc.not_configured":  "This block has not been configured yet."
+  "gui.modbloc.confirm":                "Confirm",
+  "gui.modbloc.deposit":                "Deposit",
+  "gui.modbloc.withdraw":               "Take Item",
+  "gui.modbloc.place_item":             "← Target item",
+  "gui.modbloc.amount":                 "Amount:",
+  "gui.modbloc.price":                  "Price per claim:",
+  "gui.modbloc.payment_free":           "Free",
+  "gui.modbloc.payment_cobbledollars":  "CobbleDollars",
+  "gui.modbloc.payment_emeralds":       "Emeralds",
+  "gui.modbloc.price_display_dollars":  "Price: %s $",
+  "gui.modbloc.price_display_emeralds": "Price: %s emerald(s)",
+  "gui.modbloc.deposit_section":        "Deposit:",
+  "gui.modbloc.goal_reached":           "Goal reached! Take unlimited items.",
+  "gui.modbloc.not_configured":         "This block has not been configured yet."
 }
