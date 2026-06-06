@@ -1,7 +1,7 @@
 package net.modbloc.blockentity;
 
-import fr.harmex.cobbledollars.common.utils.extensions.PlayerExtensionKt;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.modbloc.compat.CobbleDollarsCompat;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -20,7 +20,6 @@ import net.modbloc.registry.ModBlocBlockEntities;
 import net.modbloc.screen.CommunityGoalScreenHandler;
 import org.jetbrains.annotations.Nullable;
 
-import java.math.BigInteger;
 
 public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<CommunityGoalScreenHandler.OpenData> {
 
@@ -104,16 +103,12 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     /** Called server-side when player clicks Withdraw (goal reached). Returns false if insufficient funds. */
     public boolean withdrawItem(PlayerEntity player) {
         if (!isGoalReached()) return false;
-        if (pricePerStack > 0) {
-            BigInteger price = BigInteger.valueOf(pricePerStack);
-            if (!PlayerExtensionKt.canBuy(player, price)) {
+        if (pricePerStack > 0 && CobbleDollarsCompat.isLoaded()) {
+            if (!CobbleDollarsCompat.canAfford(player, pricePerStack)) {
                 player.sendMessage(Text.literal("Solde insuffisant ! Prix : " + pricePerStack + " $"), true);
                 return false;
             }
-            PlayerExtensionKt.setCobbleDollars(player, PlayerExtensionKt.getCobbleDollars(player).subtract(price));
-            if (player instanceof ServerPlayerEntity sp) {
-                PlayerExtensionKt.updateCobbleDollarsAccount(sp);
-            }
+            CobbleDollarsCompat.charge(player, pricePerStack);
         }
         player.giveItemStack(getTargetItem().copyWithCount(getTargetItem().getMaxCount()));
         return true;
