@@ -9,35 +9,29 @@ import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import net.modbloc.blockentity.CommunityGoalBlockEntity;
 import net.modbloc.registry.ModBlocScreenHandlers;
 
 public class CommunityGoalScreenHandler extends ScreenHandler {
 
-    // Property indices
-    public static final int PROP_TARGET_AMOUNT   = 0;
-    public static final int PROP_CURRENT_AMOUNT  = 1;
-    public static final int PROP_IS_SETUP        = 2;
-    public static final int PROP_GOAL_REACHED    = 3;
-    private static final int PROP_COUNT          = 4;
+    public static final int PROP_TARGET_AMOUNT  = 0;
+    public static final int PROP_CURRENT_AMOUNT = 1;
+    public static final int PROP_IS_SETUP       = 2;
+    public static final int PROP_GOAL_REACHED   = 3;
+    private static final int PROP_COUNT         = 4;
 
-    // Button IDs (sent via ButtonClickC2SPacket)
     public static final int BUTTON_DEPOSIT  = 0;
     public static final int BUTTON_WITHDRAW = 1;
 
-    // Slot layout constants
-    public static final int TARGET_SLOT     = 0;
-    public static final int DEPOSIT_START   = 1;   // slots 1-9
-    public static final int INV_START       = 10;  // player inventory 10-36
-    public static final int HOTBAR_START    = 37;  // player hotbar 37-45
+    public static final int TARGET_SLOT   = 0;
+    public static final int DEPOSIT_START = 1;
+    public static final int INV_START     = 10;
+    public static final int HOTBAR_START  = 37;
 
     private final SimpleInventory targetSlot;
     private final SimpleInventory depositInventory;
     private final PropertyDelegate propertyDelegate;
     private final BlockPos blockPos;
-
-    // Server-side reference (null on client)
     private final CommunityGoalBlockEntity blockEntity;
 
     /** Client-side constructor called by ExtendedScreenHandlerType. */
@@ -75,26 +69,28 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
         checkSize(targetSlot, 1);
         checkSize(depositInventory, 9);
 
-        // Slot 0: target item display / setup slot
-        addSlot(new TargetItemSlot(targetSlot, 0, 80, 22, this));
+        // Slot 0 — target item (centered horizontally: 176/2 - 8 = 80)
+        addSlot(new TargetItemSlot(targetSlot, 0, 80, 24, this));
 
-        // Slots 1-9: deposit area (3×3 grid)
+        // Slots 1-9 — deposit grid 3×3, centered: (176 - 3*18) / 2 = 61
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
-                addSlot(new DepositSlot(depositInventory, col + row * 3, 44 + col * 18, 58 + row * 18, this));
+                addSlot(new DepositSlot(depositInventory, col + row * 3,
+                        61 + col * 18, 76 + row * 18, this));
             }
         }
 
         // Player inventory (slots 10-36)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, 130 + row * 18));
+                addSlot(new Slot(playerInventory, col + row * 9 + 9,
+                        8 + col * 18, 166 + row * 18));
             }
         }
 
         // Hotbar (slots 37-45)
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInventory, col, 8 + col * 18, 188));
+            addSlot(new Slot(playerInventory, col, 8 + col * 18, 222));
         }
 
         addProperties(delegate);
@@ -102,12 +98,12 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
 
     // --- Synced properties ---
 
-    public int getTargetAmount()  { return propertyDelegate.get(PROP_TARGET_AMOUNT); }
-    public int getCurrentAmount() { return propertyDelegate.get(PROP_CURRENT_AMOUNT); }
-    public boolean isSetup()      { return propertyDelegate.get(PROP_IS_SETUP) == 1; }
-    public boolean isGoalReached(){ return propertyDelegate.get(PROP_GOAL_REACHED) == 1; }
+    public int getTargetAmount()   { return propertyDelegate.get(PROP_TARGET_AMOUNT); }
+    public int getCurrentAmount()  { return propertyDelegate.get(PROP_CURRENT_AMOUNT); }
+    public boolean isSetup()       { return propertyDelegate.get(PROP_IS_SETUP) == 1; }
+    public boolean isGoalReached() { return propertyDelegate.get(PROP_GOAL_REACHED) == 1; }
     public ItemStack getTargetItem() { return slots.get(TARGET_SLOT).getStack(); }
-    public BlockPos getBlockPos() { return blockPos; }
+    public BlockPos getBlockPos()  { return blockPos; }
 
     // --- Button handling (server-side) ---
 
@@ -121,7 +117,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
         };
     }
 
-    // --- Quick move (shift-click) ---
+    // --- Quick move ---
 
     @Override
     public ItemStack quickMove(PlayerEntity player, int slotIndex) {
@@ -133,12 +129,9 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
         result = stack.copy();
 
         if (slotIndex < INV_START) {
-            // Move from container to player inventory
             if (!insertItem(stack, INV_START, slots.size(), true)) return ItemStack.EMPTY;
         } else {
-            // Move from player inventory to deposit slots (if setup and matching)
-            if (isSetup() && !isGoalReached()
-                    && stack.isOf(getTargetItem().getItem())) {
+            if (isSetup() && !isGoalReached() && stack.isOf(getTargetItem().getItem())) {
                 if (!insertItem(stack, DEPOSIT_START, INV_START, false)) return ItemStack.EMPTY;
             } else if (!insertItem(stack, TARGET_SLOT, DEPOSIT_START, false)) {
                 return ItemStack.EMPTY;
@@ -153,13 +146,10 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
 
     @Override
     public boolean canUse(PlayerEntity player) {
-        if (blockEntity != null) {
-            return blockEntity.canPlayerUse(player);
-        }
-        return true;
+        return blockEntity == null || blockEntity.canPlayerUse(player);
     }
 
-    // --- PropertyDelegate builder ---
+    // --- PropertyDelegate ---
 
     private static PropertyDelegate buildDelegate(CommunityGoalBlockEntity be) {
         return new PropertyDelegate() {
@@ -172,46 +162,30 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
                     default -> 0;
                 };
             }
-            @Override public void set(int index, int value) {
-                // read-only delegate — client syncs values here
-            }
+            @Override public void set(int index, int value) {}
             @Override public int size() { return PROP_COUNT; }
         };
     }
 
-    // --- Custom slot classes ---
+    // --- Custom slots ---
 
     private static class TargetItemSlot extends Slot {
         private final CommunityGoalScreenHandler handler;
-
-        TargetItemSlot(SimpleInventory inv, int index, int x, int y, CommunityGoalScreenHandler handler) {
+        TargetItemSlot(SimpleInventory inv, int index, int x, int y, CommunityGoalScreenHandler h) {
             super(inv, index, x, y);
-            this.handler = handler;
+            this.handler = h;
         }
-
-        @Override
-        public boolean canInsert(ItemStack stack) {
-            // Only writable by creative before setup is confirmed
-            return !handler.isSetup();
-        }
-
-        @Override
-        public boolean canTakeItems(PlayerEntity player) {
-            // Cannot retrieve the target item once setup
-            return !handler.isSetup();
-        }
+        @Override public boolean canInsert(ItemStack stack)            { return !handler.isSetup(); }
+        @Override public boolean canTakeItems(PlayerEntity player)     { return !handler.isSetup(); }
     }
 
     private static class DepositSlot extends Slot {
         private final CommunityGoalScreenHandler handler;
-
-        DepositSlot(SimpleInventory inv, int index, int x, int y, CommunityGoalScreenHandler handler) {
+        DepositSlot(SimpleInventory inv, int index, int x, int y, CommunityGoalScreenHandler h) {
             super(inv, index, x, y);
-            this.handler = handler;
+            this.handler = h;
         }
-
-        @Override
-        public boolean canInsert(ItemStack stack) {
+        @Override public boolean canInsert(ItemStack stack) {
             if (!handler.isSetup() || handler.isGoalReached()) return false;
             ItemStack target = handler.getTargetItem();
             return !target.isEmpty() && stack.isOf(target.getItem());

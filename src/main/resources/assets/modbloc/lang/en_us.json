@@ -1,9 +1,10 @@
 {
   "block.modbloc.community_goal_block": "Community Goal Block",
-  "gui.modbloc.confirm": "Confirm Setup",
-  "gui.modbloc.deposit": "Deposit",
-  "gui.modbloc.withdraw": "Take Item",
-  "gui.modbloc.place_item": "Place the target item in the slot above",
-  "gui.modbloc.set_amount": "Set the goal amount then confirm",
-  "gui.modbloc.goal_reached": "Goal Reached! Take unlimited items."
+  "gui.modbloc.confirm":         "Confirm",
+  "gui.modbloc.deposit":         "Deposit",
+  "gui.modbloc.withdraw":        "Take Item",
+  "gui.modbloc.place_item":      "← Target item",
+  "gui.modbloc.amount":          "Amount:",
+  "gui.modbloc.deposit_section": "Deposit:",
+  "gui.modbloc.goal_reached":    "Goal reached! Take unlimited items."
 }
