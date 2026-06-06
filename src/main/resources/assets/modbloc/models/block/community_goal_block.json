@@ -1,6 +1,12 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "parent": "minecraft:block/cube",
   "textures": {
-    "all": "modbloc:block/community_goal_block"
+    "north":    "modbloc:block/nordsud",
+    "south":    "modbloc:block/nordsud",
+    "east":     "modbloc:block/estouest",
+    "west":     "modbloc:block/estouest",
+    "up":       "modbloc:block/hautbas",
+    "down":     "modbloc:block/hautbas",
+    "particle": "modbloc:block/hautbas"
   }
 }
