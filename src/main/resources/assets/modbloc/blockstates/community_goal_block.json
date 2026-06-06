@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "modbloc:block/community_goal_block" }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "modbloc",
+  "version": "${version}",
+  "name": "ModBloc",
+  "description": "Adds Community Goal Blocks to Minecraft.",
+  "authors": ["ModBloc"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["net.modbloc.ModBloc"],
+    "client": ["net.modbloc.ModBlocClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1"
+  }
+}

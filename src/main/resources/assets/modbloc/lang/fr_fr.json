@@ -1,0 +1,9 @@
+{
+  "block.modbloc.community_goal_block": "Bloc d'Objectif Communautaire",
+  "gui.modbloc.confirm": "Confirmer la configuration",
+  "gui.modbloc.deposit": "Déposer",
+  "gui.modbloc.withdraw": "Prendre l'objet",
+  "gui.modbloc.place_item": "Placez l'objet cible dans le slot ci-dessus",
+  "gui.modbloc.set_amount": "Définissez la quantité cible puis confirmez",
+  "gui.modbloc.goal_reached": "Objectif atteint ! Prenez des objets à l'infini."
+}
