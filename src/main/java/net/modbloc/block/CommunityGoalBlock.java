@@ -14,6 +14,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import net.modbloc.blockentity.CommunityGoalBlockEntity;
@@ -24,6 +25,8 @@ public class CommunityGoalBlock extends BlockWithEntity {
 
     public static final MapCodec<CommunityGoalBlock> CODEC = createCodec(CommunityGoalBlock::new);
     public static final DirectionProperty FACING = Properties.HORIZONTAL_FACING;
+
+    private static final VoxelShape SHAPE = Block.createCuboidShape(2, 0, 2, 14, 12, 14);
 
     public CommunityGoalBlock(Settings settings) {
         super(settings);
@@ -48,6 +51,16 @@ public class CommunityGoalBlock extends BlockWithEntity {
     @Override
     public BlockRenderType getRenderType(BlockState state) {
         return BlockRenderType.MODEL;
+    }
+
+    @Override
+    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+        return SHAPE;
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+        return SHAPE;
     }
 
     @Override
