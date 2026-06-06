@@ -110,8 +110,8 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         // Target slot
         drawSlot(context, x + TARGET_X, y + TARGET_Y);
 
-        // Deposit grid only in play mode
-        if (handler.isConfigured()) {
+        // Deposit grid only in play mode and before goal is reached
+        if (handler.isConfigured() && !handler.isGoalReached()) {
             for (int row = 0; row < 3; row++) {
                 for (int col = 0; col < 9; col++) {
                     drawSlot(context, x + DEP_X0 + col * 18, y + DEP_Y0 + row * 18);
@@ -195,8 +195,8 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
             context.drawCenteredTextWithShadow(textRenderer, prog, cx, 55,
                     goalReached ? 0x55FF55 : 0xFFFFFF);
 
-            // Price (only if non-zero)
-            if (price > 0) {
+            // Price — only shown when goal is reached and price is non-zero
+            if (goalReached && price > 0) {
                 String priceStr = fit(Text.translatable("gui.modbloc.price_display",
                         String.format("%,d", price)).getString(), MAX_TW);
                 context.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 65, 0xFFDD44);
