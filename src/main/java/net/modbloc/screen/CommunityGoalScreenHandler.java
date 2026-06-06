@@ -4,6 +4,9 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.RegistryByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.screen.ArrayPropertyDelegate;
 import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
@@ -11,6 +14,7 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.util.math.BlockPos;
 import net.modbloc.blockentity.CommunityGoalBlockEntity;
 import net.modbloc.registry.ModBlocScreenHandlers;
+import org.jetbrains.annotations.Nullable;
 
 public class CommunityGoalScreenHandler extends ScreenHandler {
 
@@ -24,24 +28,37 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     public static final int BUTTON_WITHDRAW = 1;
 
     public static final int TARGET_SLOT   = 0;
-    public static final int DEPOSIT_START = 1;   // slots 1-27 (9×3)
-    public static final int INV_START     = 28;  // player inventory 28-54
-    public static final int HOTBAR_START  = 55;  // hotbar 55-63
+    public static final int DEPOSIT_START = 1;
+
+    // Sent from server to client when opening the screen.
+    public record OpenData(BlockPos pos, boolean configured) {
+        public static final PacketCodec<RegistryByteBuf, OpenData> CODEC = PacketCodec.tuple(
+                BlockPos.PACKET_CODEC, OpenData::pos,
+                PacketCodecs.BOOL,     OpenData::configured,
+                OpenData::new
+        );
+    }
+
+    // Instance-level slot boundaries (depend on whether deposit slots exist).
+    public final int invStart;
+    public final int hotbarStart;
 
     private final SimpleInventory targetSlot;
     private final SimpleInventory depositInventory;
     private final PropertyDelegate propertyDelegate;
     private final BlockPos blockPos;
-    private final CommunityGoalBlockEntity blockEntity;
+    private final @Nullable CommunityGoalBlockEntity blockEntity;
+    private final boolean configured; // true = play mode (deposit slots present)
 
     /** Client-side constructor called by ExtendedScreenHandlerType. */
-    public CommunityGoalScreenHandler(int syncId, PlayerInventory playerInventory, BlockPos blockPos) {
+    public CommunityGoalScreenHandler(int syncId, PlayerInventory playerInventory, OpenData openData) {
         this(syncId, playerInventory,
                 new SimpleInventory(1),
                 new SimpleInventory(27),
                 new ArrayPropertyDelegate(PROP_COUNT),
-                blockPos,
-                null);
+                openData.pos(),
+                null,
+                openData.configured());
     }
 
     /** Server-side constructor called from BlockEntity.createMenu. */
@@ -52,35 +69,46 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
                 be.getDepositInventory(),
                 buildDelegate(be),
                 be.getPos(),
-                be);
+                be,
+                be.isSetup());
     }
 
     private CommunityGoalScreenHandler(int syncId, PlayerInventory playerInventory,
                                         SimpleInventory targetSlot, SimpleInventory depositInventory,
                                         PropertyDelegate delegate, BlockPos blockPos,
-                                        CommunityGoalBlockEntity blockEntity) {
+                                        @Nullable CommunityGoalBlockEntity blockEntity,
+                                        boolean configured) {
         super(ModBlocScreenHandlers.COMMUNITY_GOAL, syncId);
         this.targetSlot = targetSlot;
         this.depositInventory = depositInventory;
         this.propertyDelegate = delegate;
         this.blockPos = blockPos;
         this.blockEntity = blockEntity;
+        this.configured = configured;
 
         checkSize(targetSlot, 1);
-        checkSize(depositInventory, 27);
 
-        // Slot 0 — target item (centered: 176/2 - 8 = 80)
+        // Slot 0: target item (centered horizontally: 176/2 − 8 = 80)
         addSlot(new TargetItemSlot(targetSlot, 0, 80, 24, this));
 
-        // Slots 1-27 — deposit grid 9×3, same x-alignment as player inventory
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 9; col++) {
-                addSlot(new DepositSlot(depositInventory, col + row * 9,
-                        8 + col * 18, 76 + row * 18, this));
+        if (configured) {
+            // Play mode: add 27 deposit slots (9×3 grid)
+            checkSize(depositInventory, 27);
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 9; col++) {
+                    addSlot(new DepositSlot(depositInventory, col + row * 9,
+                            8 + col * 18, 76 + row * 18, this));
+                }
             }
+            this.invStart    = 28;
+            this.hotbarStart = 55;
+        } else {
+            // Setup mode: no deposit slots
+            this.invStart    = 1;
+            this.hotbarStart = 28;
         }
 
-        // Player inventory (slots 28-54)
+        // Player inventory
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(playerInventory, col + row * 9 + 9,
@@ -88,7 +116,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
             }
         }
 
-        // Hotbar (slots 55-63)
+        // Hotbar
         for (int col = 0; col < 9; col++) {
             addSlot(new Slot(playerInventory, col, 8 + col * 18, 222));
         }
@@ -104,6 +132,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     public boolean isGoalReached() { return propertyDelegate.get(PROP_GOAL_REACHED) == 1; }
     public ItemStack getTargetItem() { return slots.get(TARGET_SLOT).getStack(); }
     public BlockPos getBlockPos()  { return blockPos; }
+    public boolean isConfigured()  { return configured; }
 
     // --- Button handling (server-side) ---
 
@@ -128,12 +157,15 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
         ItemStack stack = slot.getStack();
         result = stack.copy();
 
-        if (slotIndex < INV_START) {
-            if (!insertItem(stack, INV_START, slots.size(), true)) return ItemStack.EMPTY;
+        if (slotIndex < invStart) {
+            // Target or deposit → player inventory
+            if (!insertItem(stack, invStart, slots.size(), true)) return ItemStack.EMPTY;
         } else {
-            if (isSetup() && !isGoalReached() && stack.isOf(getTargetItem().getItem())) {
-                if (!insertItem(stack, DEPOSIT_START, INV_START, false)) return ItemStack.EMPTY;
-            } else if (!insertItem(stack, TARGET_SLOT, DEPOSIT_START, false)) {
+            // Player inventory / hotbar → deposit or target
+            if (configured && isSetup() && !isGoalReached()
+                    && !getTargetItem().isEmpty() && stack.isOf(getTargetItem().getItem())) {
+                if (!insertItem(stack, DEPOSIT_START, invStart, false)) return ItemStack.EMPTY;
+            } else if (!insertItem(stack, TARGET_SLOT, TARGET_SLOT + 1, false)) {
                 return ItemStack.EMPTY;
             }
         }
@@ -175,8 +207,8 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
             super(inv, index, x, y);
             this.handler = h;
         }
-        @Override public boolean canInsert(ItemStack stack)            { return !handler.isSetup(); }
-        @Override public boolean canTakeItems(PlayerEntity player)     { return !handler.isSetup(); }
+        @Override public boolean canInsert(ItemStack stack)        { return !handler.isSetup(); }
+        @Override public boolean canTakeItems(PlayerEntity player) { return !handler.isSetup(); }
     }
 
     private static class DepositSlot extends Slot {

@@ -19,7 +19,7 @@ import net.modbloc.registry.ModBlocBlockEntities;
 import net.modbloc.screen.CommunityGoalScreenHandler;
 import org.jetbrains.annotations.Nullable;
 
-public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<BlockPos> {
+public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<CommunityGoalScreenHandler.OpenData> {
 
     // The target item is stored in this 1-slot inventory (slot syncs automatically via screen handler).
     private final SimpleInventory targetSlot = new SimpleInventory(1) {
@@ -161,8 +161,8 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     // --- Screen ---
 
     @Override
-    public BlockPos getScreenOpeningData(ServerPlayerEntity player) {
-        return this.pos;
+    public CommunityGoalScreenHandler.OpenData getScreenOpeningData(ServerPlayerEntity player) {
+        return new CommunityGoalScreenHandler.OpenData(this.pos, this.isSetup);
     }
 
     @Override

@@ -60,6 +60,8 @@ public class ModBlocPackets {
 
                 be.setup(targetItem, amount);
                 world.updateListeners(pos, world.getBlockState(pos), world.getBlockState(pos), Block.NOTIFY_ALL);
+                // Close setup screen — player reopens the block to get the play-mode screen
+                player.closeHandledScreen();
             });
         });
     }

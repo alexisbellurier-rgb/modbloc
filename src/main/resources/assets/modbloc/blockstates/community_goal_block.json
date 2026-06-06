@@ -1,5 +1,8 @@
 {
   "variants": {
-    "": { "model": "modbloc:block/community_goal_block" }
+    "facing=north": { "model": "modbloc:block/community_goal_block" },
+    "facing=south": { "model": "modbloc:block/community_goal_block", "y": 180 },
+    "facing=east":  { "model": "modbloc:block/community_goal_block", "y": 90 },
+    "facing=west":  { "model": "modbloc:block/community_goal_block", "y": 270 }
   }
 }

@@ -15,15 +15,14 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
     private static final Identifier TEXTURE =
             Identifier.of("modbloc", "textures/gui/community_goal.png");
 
-    private static final int BG_W    = 176;
-    private static final int BG_H    = 240;
-    private static final int BAR_W   = 120;
-    private static final int BAR_H   = 8;
-    private static final int MAX_TW  = 140; // max text width in content area
+    private static final int BG_W   = 176;
+    private static final int BG_H   = 240;
+    private static final int BAR_W  = 120;
+    private static final int BAR_H  = 8;
+    private static final int MAX_TW = 140;
 
-    // Slot positions (must match CommunityGoalScreenHandler)
     private static final int TARGET_X = 80, TARGET_Y = 24;
-    private static final int DEP_X0 = 8, DEP_Y0 = 76;
+    private static final int DEP_X0 = 8,   DEP_Y0 = 76;
 
     private TextFieldWidget amountField;
     private ButtonWidget    confirmButton;
@@ -44,8 +43,8 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         int cx = x + BG_W / 2;
 
-        amountField = new TextFieldWidget(textRenderer, cx - 35, y + 50, 70, 12,
-                Text.empty());
+        // Setup widgets: vertically centered in the content area (y=24 to y=150)
+        amountField = new TextFieldWidget(textRenderer, cx - 35, y + 83, 70, 12, Text.empty());
         amountField.setMaxLength(9);
         amountField.setText("1000");
         amountField.setVisible(false);
@@ -53,10 +52,11 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         confirmButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.confirm"), btn -> sendConfirm()
-        ).dimensions(cx - 50, y + 66, 100, 16).build();
+        ).dimensions(cx - 50, y + 99, 100, 16).build();
         confirmButton.visible = false;
         addDrawableChild(confirmButton);
 
+        // Play-mode widgets
         depositButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.deposit"), btn -> sendDeposit()
         ).dimensions(cx - 50, y + 130, 100, 16).build();
@@ -78,13 +78,11 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
     }
 
     private void sendDeposit() {
-        client.interactionManager.clickButton(handler.syncId,
-                CommunityGoalScreenHandler.BUTTON_DEPOSIT);
+        client.interactionManager.clickButton(handler.syncId, CommunityGoalScreenHandler.BUTTON_DEPOSIT);
     }
 
     private void sendWithdraw() {
-        client.interactionManager.clickButton(handler.syncId,
-                CommunityGoalScreenHandler.BUTTON_WITHDRAW);
+        client.interactionManager.clickButton(handler.syncId, CommunityGoalScreenHandler.BUTTON_WITHDRAW);
     }
 
     // ------------------------------------------------------------------
@@ -93,19 +91,21 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
     @Override
     protected void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
-        // Main background texture
         context.drawTexture(TEXTURE, x, y, 0, 0, BG_W, BG_H);
 
-        // Slot backgrounds (vanilla style: dark top/left, light bottom/right, grey interior)
+        // Target slot
         drawSlot(context, x + TARGET_X, y + TARGET_Y);
-        // Deposit slots only shown once the block is configured
-        if (handler.isSetup()) {
+
+        // Deposit grid only in play mode
+        if (handler.isConfigured()) {
             for (int row = 0; row < 3; row++) {
                 for (int col = 0; col < 9; col++) {
                     drawSlot(context, x + DEP_X0 + col * 18, y + DEP_Y0 + row * 18);
                 }
             }
         }
+
+        // Player inventory + hotbar
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 drawSlot(context, x + 8 + col * 18, y + 166 + row * 18);
@@ -116,31 +116,30 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         }
     }
 
-    /** Draws a single 16×16 slot at absolute screen position (sx, sy). */
     private void drawSlot(DrawContext ctx, int sx, int sy) {
-        ctx.fill(sx - 1, sy - 1, sx + 17, sy,     0xFF373737); // top shadow
-        ctx.fill(sx - 1, sy,     sx,      sy + 17, 0xFF373737); // left shadow
-        ctx.fill(sx,     sy + 16, sx + 17, sy + 17, 0xFFFFFFFF); // bottom highlight
-        ctx.fill(sx + 16, sy,    sx + 17,  sy + 16, 0xFFFFFFFF); // right highlight
-        ctx.fill(sx, sy, sx + 16, sy + 16, 0xFF8B8B8B);          // interior
+        ctx.fill(sx - 1, sy - 1, sx + 17, sy,     0xFF373737);
+        ctx.fill(sx - 1, sy,     sx,      sy + 17, 0xFF373737);
+        ctx.fill(sx,     sy + 16, sx + 17, sy + 17, 0xFFFFFFFF);
+        ctx.fill(sx + 16, sy,    sx + 17,  sy + 16, 0xFFFFFFFF);
+        ctx.fill(sx, sy, sx + 16, sy + 16, 0xFF8B8B8B);
     }
 
     @Override
     protected void drawForeground(DrawContext context, int mouseX, int mouseY) {
-        boolean setup       = handler.isSetup();
+        boolean configured  = handler.isConfigured();
         boolean goalReached = handler.isGoalReached();
         int target          = handler.getTargetAmount();
         int current         = handler.getCurrentAmount();
         ItemStack targetItem = handler.getTargetItem();
         int cx              = BG_W / 2;
 
-        // Update widget visibility
-        amountField.setVisible(!setup);
-        confirmButton.visible = !setup;
-        depositButton.visible =  setup && !goalReached;
-        withdrawButton.visible = goalReached;
+        // Widget visibility
+        amountField.setVisible(!configured);
+        confirmButton.visible   = !configured;
+        depositButton.visible   =  configured && !goalReached;
+        withdrawButton.visible  =  goalReached;
 
-        // Title (trimmed to container width)
+        // Title
         String titleStr = fit(title.getString(), BG_W - 16);
         context.drawText(textRenderer, titleStr,
                 cx - textRenderer.getWidth(titleStr) / 2, 6, 0x404040, false);
@@ -149,60 +148,51 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         context.drawText(textRenderer, playerInventoryTitle,
                 playerInventoryTitleX, playerInventoryTitleY, 0x404040, false);
 
-        if (!setup) {
-            // ── SETUP MODE ──────────────────────────────────────────────
+        if (!configured) {
+            // ── SETUP MODE ───────────────────────────────────────────────────
             // Hint to the right of the target slot
             String hint = fit(Text.translatable("gui.modbloc.place_item").getString(), 68);
             context.drawText(textRenderer, hint, TARGET_X + 18, TARGET_Y + 4, 0x606060, false);
 
-            // Amount label above the text field (field at y=50)
+            // Amount label centered above the field (field widget at container-y=83)
             String amtLabel = fit(Text.translatable("gui.modbloc.amount").getString(), MAX_TW);
             context.drawText(textRenderer, amtLabel,
-                    cx - textRenderer.getWidth(amtLabel) / 2, 40, 0x404040, false);
+                    cx - textRenderer.getWidth(amtLabel) / 2, 70, 0x404040, false);
 
         } else {
-            // ── PLAY MODE ───────────────────────────────────────────────
+            // ── PLAY MODE ────────────────────────────────────────────────────
 
-            // Item name below slot (slot bottom = TARGET_Y + 16 = 40)
+            // Item name below the target slot
             if (!targetItem.isEmpty()) {
                 String name = fit(targetItem.getName().getString(), MAX_TW);
                 context.drawText(textRenderer, name,
                         cx - textRenderer.getWidth(name) / 2, 44, 0x404040, false);
             }
 
-            // Progress bar (y=54)
+            // Progress bar
             drawProgressBar(context, cx, 54, current, target, goalReached);
 
-            // Progress numbers (y=65, below bar)
+            // Progress numbers
             String prog = fit(current + " / " + target, MAX_TW);
             context.drawCenteredTextWithShadow(textRenderer, prog, cx, 65,
                     goalReached ? 0x55FF55 : 0xFFFFFF);
-
-            // Status above deposit grid (DEP_Y0 = 76, text at 68)
-            if (goalReached) {
-                String reached = fit(Text.translatable("gui.modbloc.goal_reached").getString(), MAX_TW);
-                context.drawCenteredTextWithShadow(textRenderer, reached, cx, 68, 0x55FF55);
-            }
         }
     }
 
-    private void drawProgressBar(DrawContext ctx, int cx, int y,
+    private void drawProgressBar(DrawContext ctx, int cx, int barY,
                                   int current, int target, boolean goalReached) {
         int bx = cx - BAR_W / 2;
         float ratio = target > 0 ? Math.min(1f, (float) current / target) : 0f;
 
-        // Border
-        ctx.fill(bx - 1, y - 1, bx + BAR_W + 1, y + BAR_H + 1, 0xFF555555);
-        // Background
-        ctx.fill(bx, y, bx + BAR_W, y + BAR_H, 0xFF222222);
-        // Fill
+        ctx.fill(bx - 1, barY - 1, bx + BAR_W + 1, barY + BAR_H + 1, 0xFF555555);
+        ctx.fill(bx, barY, bx + BAR_W, barY + BAR_H, 0xFF222222);
+
         int fw = (int) (BAR_W * ratio);
         if (fw > 0) {
-            ctx.fill(bx, y, bx + fw, y + BAR_H, goalReached ? 0xFF55CC55 : 0xFF4488FF);
+            ctx.fill(bx, barY, bx + fw, barY + BAR_H, goalReached ? 0xFF55CC55 : 0xFF4488FF);
         }
     }
 
-    /** Trims text to fit maxWidth, appending "…" if truncated. */
     private String fit(String text, int maxWidth) {
         if (textRenderer.getWidth(text) <= maxWidth) return text;
         String ellipsis = "…";
