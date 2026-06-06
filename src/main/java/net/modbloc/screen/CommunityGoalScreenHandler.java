@@ -138,7 +138,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
         } else {
             // Move from player inventory to deposit slots (if setup and matching)
             if (isSetup() && !isGoalReached()
-                    && ItemStack.isSameItemAndComponents(stack, getTargetItem())) {
+                    && stack.isOf(getTargetItem().getItem())) {
                 if (!insertItem(stack, DEPOSIT_START, INV_START, false)) return ItemStack.EMPTY;
             } else if (!insertItem(stack, TARGET_SLOT, DEPOSIT_START, false)) {
                 return ItemStack.EMPTY;
@@ -214,7 +214,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
         public boolean canInsert(ItemStack stack) {
             if (!handler.isSetup() || handler.isGoalReached()) return false;
             ItemStack target = handler.getTargetItem();
-            return !target.isEmpty() && ItemStack.isSameItemAndComponents(stack, target);
+            return !target.isEmpty() && stack.isOf(target.getItem());
         }
     }
 }

@@ -80,7 +80,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         for (int i = 0; i < depositInventory.size(); i++) {
             ItemStack stack = depositInventory.getStack(i);
             if (stack.isEmpty()) continue;
-            if (ItemStack.isSameItemAndComponents(stack, target)) {
+            if (stack.isOf(target.getItem())) {
                 int add = Math.min(stack.getCount(), targetAmount - currentAmount);
                 currentAmount += add;
                 stack.decrement(add);
@@ -112,14 +112,14 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         nbt.putBoolean("IsSetup", isSetup);
 
         if (!targetSlot.getStack(0).isEmpty()) {
-            nbt.put("TargetItem", targetSlot.getStack(0).toNbt(registries));
+            nbt.put("TargetItem", targetSlot.getStack(0).encode(registries));
         }
 
         NbtCompound depositNbt = new NbtCompound();
         for (int i = 0; i < depositInventory.size(); i++) {
             ItemStack s = depositInventory.getStack(i);
             if (!s.isEmpty()) {
-                depositNbt.put(String.valueOf(i), s.toNbt(registries));
+                depositNbt.put(String.valueOf(i), s.encode(registries));
             }
         }
         nbt.put("DepositSlots", depositNbt);

@@ -61,7 +61,7 @@ public class CommunityGoalBlock extends BlockWithEntity {
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state,
                                                                               BlockEntityType<T> type) {
         return world.isClient
-                ? checkType(world, type, ModBlocBlockEntities.COMMUNITY_GOAL_BLOCK_ENTITY, CommunityGoalBlockEntity::clientTick)
+                ? checkType(type, ModBlocBlockEntities.COMMUNITY_GOAL_BLOCK_ENTITY, CommunityGoalBlockEntity::clientTick)
                 : null;
     }
 }
