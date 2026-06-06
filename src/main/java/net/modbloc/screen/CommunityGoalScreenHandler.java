@@ -38,7 +38,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     public CommunityGoalScreenHandler(int syncId, PlayerInventory playerInventory, BlockPos blockPos) {
         this(syncId, playerInventory,
                 new SimpleInventory(1),
-                new SimpleInventory(9),
+                new SimpleInventory(27),
                 new ArrayPropertyDelegate(PROP_COUNT),
                 blockPos,
                 null);
