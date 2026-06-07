@@ -49,8 +49,8 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     // Deposit / player inventory left edge: (256 - 9*18) / 2 = 47
     public static final int GRID_LEFT = 47;
     public static final int DEP_SY    = 82;
-    public static final int INV_SY    = 170;
-    public static final int HOTBAR_SY = 226;
+    public static final int INV_SY    = 192;
+    public static final int HOTBAR_SY = 248;
 
     // ── Open data sent server → client ───────────────────────────────────────
     public record OpenData(BlockPos pos, boolean configured, boolean goalReached) {

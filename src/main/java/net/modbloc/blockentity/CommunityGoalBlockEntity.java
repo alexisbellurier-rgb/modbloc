@@ -113,7 +113,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
                 case CommunityGoalScreenHandler.PAYMENT_COBBLEDOLLARS -> {
                     if (CobbleDollarsCompat.isLoaded()) {
                         if (!CobbleDollarsCompat.canAfford(player, pricePerStack)) {
-                            player.sendMessage(Text.literal("Solde insuffisant ! Prix : " + pricePerStack + " $"), true);
+                            player.sendMessage(Text.literal("Solde insuffisant ! Prix : " + pricePerStack + " CCCoins"), true);
                             return false;
                         }
                         CobbleDollarsCompat.charge(player, pricePerStack);

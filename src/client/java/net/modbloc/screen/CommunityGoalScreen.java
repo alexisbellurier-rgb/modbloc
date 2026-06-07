@@ -12,10 +12,12 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
     // ── Dimensions ───────────────────────────────────────────────────────────
     private static final int BG_W     = CommunityGoalScreenHandler.BG_W;   // 256
-    private static final int BG_H     = 256;
+    private static final int BG_H     = 280;  // taller than default to fit all sections
     private static final int BAR_W    = 180;
     private static final int BAR_H    = 10;
     private static final int MAX_TW   = 210;
+    // Local y of the footer separator (player-inv background starts here)
+    private static final int FOOTER_Y = 176;
 
     // Slot grid positions (mirror the handler)
     private static final int TARGET_X = CommunityGoalScreenHandler.TARGET_SX; // 120
@@ -23,8 +25,8 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
     private static final int DEP_X    = CommunityGoalScreenHandler.GRID_LEFT;  // 47
     private static final int DEP_Y    = CommunityGoalScreenHandler.DEP_SY;     // 82
     private static final int INV_X    = CommunityGoalScreenHandler.GRID_LEFT;  // 47
-    private static final int INV_Y    = CommunityGoalScreenHandler.INV_SY;     // 170
-    private static final int HOTBAR_Y = CommunityGoalScreenHandler.HOTBAR_SY;  // 226
+    private static final int INV_Y    = CommunityGoalScreenHandler.INV_SY;     // 192
+    private static final int HOTBAR_Y = CommunityGoalScreenHandler.HOTBAR_SY;  // 248
 
     // ── Colours ──────────────────────────────────────────────────────────────
     private static final int C_BG         = 0xFF1A1E28;
@@ -60,21 +62,23 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
     @Override
     protected void init() {
         super.init();
-        this.playerInventoryTitleY = 160;
+        this.playerInventoryTitleY = 182;
 
         int cx = x + BG_W / 2;
 
-        // ── Setup widgets — labels are drawn to the left in drawForeground ─────
-        // Field/button start at local x=128 (screen x+128)
+        // ── Setup widgets ──────────────────────────────────────────────────────
+        // All three rows use the same width (90) and height (12) for consistency.
+        // Labels are drawn to the left in drawSetupContent (local x=18).
         amountField = new TextFieldWidget(textRenderer, x + 128, y + 62, 90, 12, Text.empty());
         amountField.setMaxLength(9);
         amountField.setText("1000");
         amountField.setVisible(false);
         addDrawableChild(amountField);
 
+        // Same size as the text fields so the row heights are uniform
         paymentCycleButton = ButtonWidget.builder(Text.empty(), btn ->
                 selectedPaymentType = (selectedPaymentType + 1) % 3
-        ).dimensions(x + 128, y + 82, 110, 16).build();
+        ).dimensions(x + 128, y + 82, 90, 12).build();
         paymentCycleButton.visible = false;
         addDrawableChild(paymentCycleButton);
 
@@ -84,23 +88,26 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         priceField.setVisible(false);
         addDrawableChild(priceField);
 
+        // Confirm is centred and slightly lower than the last row
         confirmButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.confirm"), btn -> sendConfirm()
-        ).dimensions(cx - 60, y + 124, 120, 16).build();
+        ).dimensions(cx - 60, y + 128, 120, 16).build();
         confirmButton.visible = false;
         addDrawableChild(confirmButton);
 
-        // ── Play-mode widgets ─────────────────────────────────────────────────
+        // ── Play-mode widgets ──────────────────────────────────────────────────
+        // Button sits below the deposit grid with comfortable spacing to footer
         depositButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.deposit"), btn -> sendDeposit()
-        ).dimensions(cx - 60, y + 140, 120, 16).build();
+        ).dimensions(cx - 60, y + 150, 120, 16).build();
         depositButton.visible = false;
         addDrawableChild(depositButton);
 
-        // ── Goal-reached widgets ──────────────────────────────────────────────
+        // ── Goal-reached widgets ───────────────────────────────────────────────
+        // Lower position to be centred between the second separator and the footer
         withdrawButton = ButtonWidget.builder(
                 Text.translatable("gui.modbloc.withdraw_free"), btn -> sendWithdraw()
-        ).dimensions(cx - 70, y + 116, 140, 16).build();
+        ).dimensions(cx - 70, y + 136, 140, 16).build();
         withdrawButton.visible = false;
         addDrawableChild(withdrawButton);
     }
@@ -139,9 +146,9 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         ctx.fill(x, y, x + BG_W, y + 22, C_HEADER);
         ctx.fill(x, y + 21, x + BG_W, y + 22, C_SEPARATOR);
 
-        // Footer / player-inventory section
-        ctx.fill(x, y + 154, x + BG_W, y + BG_H, C_FOOTER);
-        ctx.fill(x, y + 154, x + BG_W, y + 155, C_SEPARATOR);
+        // Footer / player-inventory section (starts at FOOTER_Y)
+        ctx.fill(x, y + FOOTER_Y, x + BG_W, y + BG_H, C_FOOTER);
+        ctx.fill(x, y + FOOTER_Y, x + BG_W, y + FOOTER_Y + 1, C_SEPARATOR);
 
         // Target slot
         drawSlot(ctx, x + TARGET_X, y + TARGET_Y);
@@ -195,7 +202,7 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         if (!configured) paymentCycleButton.setMessage(paymentTypeText(selectedPaymentType));
 
-        // Withdraw button label depends on whether there is a cost
+        // Withdraw button label: contextual
         boolean hasCost = price > 0 && paymentType != CommunityGoalScreenHandler.PAYMENT_FREE;
         withdrawButton.setMessage(Text.translatable(
                 hasCost ? "gui.modbloc.withdraw_paid" : "gui.modbloc.withdraw_free"));
@@ -221,41 +228,47 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
     }
 
     // ── Setup content ─────────────────────────────────────────────────────────
-    // Labels are drawn inline to the left of each widget (local x=18).
-    // Widgets start at local x=128 (screen x+128).
+    // Three rows, each 20px apart. Labels (x=18) are inline left of widgets (x=128).
+    // Widget height is uniform: 12px (same for fields and the payment button).
 
     private void drawSetupContent(DrawContext ctx, boolean showPrice) {
         separator(ctx, 56);
 
-        // "Quantité :" — centered with the 12px field at local y=62
+        // "Quantité :" — vertically centred with the 12px field at local y=62
         ctx.drawText(textRenderer,
                 fit(Text.translatable("gui.modbloc.amount").getString(), 104),
                 18, 64, C_MUTED, false);
 
-        // "Monnaie :" — centered with the 16px button at local y=82
+        // "Monnaie :" — vertically centred with the 12px button at local y=82
         ctx.drawText(textRenderer,
                 fit(Text.translatable("gui.modbloc.payment_label").getString(), 104),
-                18, 87, C_MUTED, false);
+                18, 85, C_MUTED, false);
 
-        // "Prix par retrait :" — centered with the 12px field at local y=102
+        // "Prix par retrait :" — vertically centred with the 12px field at local y=102
         if (showPrice) {
             ctx.drawText(textRenderer,
                     fit(Text.translatable("gui.modbloc.price").getString(), 104),
-                    18, 104, C_MUTED, false);
+                    18, 105, C_MUTED, false);
         }
 
         separator(ctx, 118);
+        // Confirm button at y+128 (10px below separator)
     }
 
     // ── Play content (deposit phase) ──────────────────────────────────────────
+    // Progress bar sits between the separator and the deposit grid.
+    // Counter appears below the deposit grid, above the deposit button.
 
     private void drawPlayContent(DrawContext ctx, int cx, int current, int target) {
         separator(ctx, 56);
 
-        // Progress bar just below the separator, then counter
+        // Progress bar in the gap between separator and deposit slots (y=82)
         drawBar(ctx, cx, 60, current, target, false);
+
+        // Counter below the deposit grid (slot border ends at DEP_Y + 3*18 - 1 = 135)
         ctx.drawCenteredTextWithShadow(textRenderer,
-                fit(current + " / " + target, MAX_TW), cx, 74, C_MUTED);
+                fit(current + " / " + target, MAX_TW), cx, 138, C_MUTED);
+        // Deposit button is at y+150 (set in init)
     }
 
     // ── Goal-reached content ──────────────────────────────────────────────────
@@ -265,7 +278,7 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         ctx.drawCenteredTextWithShadow(textRenderer,
                 fit(Text.translatable("gui.modbloc.goal_complete").getString(), MAX_TW),
-                cx, 72, C_GREEN);
+                cx, 74, C_GREEN);
 
         if (price > 0 && paymentType != CommunityGoalScreenHandler.PAYMENT_FREE) {
             String priceStr = switch (paymentType) {
@@ -280,12 +293,12 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
             if (!priceStr.isEmpty()) {
                 int color = paymentType == CommunityGoalScreenHandler.PAYMENT_EMERALDS
                         ? C_GREEN : C_YELLOW;
-                ctx.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 90, color);
+                ctx.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 92, color);
             }
         }
 
-        separator(ctx, 106);
-        // Withdraw button is at y+116 (set in init)
+        separator(ctx, 110);
+        // Withdraw button at y+136 (centred between separator and footer)
     }
 
     // ── Drawing helpers ───────────────────────────────────────────────────────
