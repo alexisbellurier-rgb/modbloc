@@ -15,22 +15,20 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.modbloc.registry.ModBlocBlockEntities;
-import net.modbloc.screen.CommunityGoalScreenHandler;
 import org.jetbrains.annotations.Nullable;
 
 
 public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<CommunityGoalScreenHandler.OpenData> {
 
-    // The target item is stored in this 1-slot inventory (slot syncs automatically via screen handler).
     private final SimpleInventory targetSlot = new SimpleInventory(1) {
         @Override public void markDirty() { CommunityGoalBlockEntity.this.markDirty(); }
     };
 
-    // 27 deposit slots (9×3) — items placed here are consumed on deposit action.
     private final SimpleInventory depositInventory = new SimpleInventory(27) {
         @Override public void markDirty() { CommunityGoalBlockEntity.this.markDirty(); }
     };
@@ -40,6 +38,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     private int pricePerStack = 0;
     private int paymentType = CommunityGoalScreenHandler.PAYMENT_FREE;
     private boolean isSetup = false;
+    private String functionName = "";
 
     // Used by the client-side renderer for item rotation animation.
     public float renderAngle = 0f;
@@ -69,19 +68,19 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
 
     // --- Setup ---
 
-    public void setup(ItemStack targetItem, int amount, int price, int payment) {
+    public void setup(ItemStack targetItem, int amount, int price, int payment, String function) {
         targetSlot.setStack(0, targetItem.copyWithCount(1));
-        this.targetAmount = Math.max(1, amount);
+        this.targetAmount  = Math.max(1, amount);
         this.pricePerStack = Math.max(0, price);
-        this.paymentType = payment;
+        this.paymentType   = payment;
+        this.functionName  = function == null ? "" : function.trim();
         this.currentAmount = 0;
-        this.isSetup = true;
+        this.isSetup       = true;
         markDirty();
     }
 
     // --- Deposit ---
 
-    /** Called server-side from the screen handler when player clicks Deposit. */
     public void depositItems(PlayerEntity player) {
         if (!isSetup || isGoalReached()) return;
         ItemStack target = getTargetItem();
@@ -96,16 +95,23 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
                 stack.decrement(add);
                 if (stack.isEmpty()) depositInventory.setStack(i, ItemStack.EMPTY);
             } else {
-                // Return non-matching items to player
                 player.giveItemStack(stack.copy());
                 depositInventory.setStack(i, ItemStack.EMPTY);
             }
         }
         markDirty();
         if (world != null) world.updateListeners(pos, getCachedState(), getCachedState(), 3);
+
+        // Execute the configured Minecraft function the moment the goal is first reached
+        if (isGoalReached() && !functionName.isEmpty() && world instanceof ServerWorld sw) {
+            try {
+                var server = sw.getServer();
+                var source = server.getCommandSource().withLevel(4).withSilent();
+                server.getCommandManager().executeWithPrefix(source, "function " + functionName);
+            } catch (Exception ignored) {}
+        }
     }
 
-    /** Called server-side when player clicks Withdraw (goal reached). Returns false if insufficient funds. */
     public boolean withdrawItem(PlayerEntity player) {
         if (!isGoalReached()) return false;
         if (pricePerStack > 0) {
@@ -158,11 +164,12 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     @Override
     protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         super.writeNbt(nbt, registries);
-        nbt.putInt("TargetAmount", targetAmount);
+        nbt.putInt("TargetAmount",  targetAmount);
         nbt.putInt("CurrentAmount", currentAmount);
         nbt.putInt("PricePerStack", pricePerStack);
-        nbt.putInt("PaymentType", paymentType);
-        nbt.putBoolean("IsSetup", isSetup);
+        nbt.putInt("PaymentType",   paymentType);
+        nbt.putBoolean("IsSetup",   isSetup);
+        nbt.putString("FunctionName", functionName);
 
         if (!targetSlot.getStack(0).isEmpty()) {
             nbt.put("TargetItem", targetSlot.getStack(0).encode(registries));
@@ -171,9 +178,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         NbtCompound depositNbt = new NbtCompound();
         for (int i = 0; i < depositInventory.size(); i++) {
             ItemStack s = depositInventory.getStack(i);
-            if (!s.isEmpty()) {
-                depositNbt.put(String.valueOf(i), s.encode(registries));
-            }
+            if (!s.isEmpty()) depositNbt.put(String.valueOf(i), s.encode(registries));
         }
         nbt.put("DepositSlots", depositNbt);
     }
@@ -181,11 +186,12 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     @Override
     protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         super.readNbt(nbt, registries);
-        targetAmount = nbt.getInt("TargetAmount");
+        targetAmount  = nbt.getInt("TargetAmount");
         currentAmount = nbt.getInt("CurrentAmount");
         pricePerStack = nbt.getInt("PricePerStack");
-        paymentType = nbt.getInt("PaymentType");
-        isSetup = nbt.getBoolean("IsSetup");
+        paymentType   = nbt.getInt("PaymentType");
+        isSetup       = nbt.getBoolean("IsSetup");
+        functionName  = nbt.contains("FunctionName") ? nbt.getString("FunctionName") : "";
 
         if (nbt.contains("TargetItem", NbtElement.COMPOUND_TYPE)) {
             ItemStack.fromNbt(registries, nbt.getCompound("TargetItem"))

@@ -17,5 +17,6 @@
   "gui.modbloc.not_configured":         "Ce bloc n'est pas encore configuré.",
   "gui.modbloc.goal_complete":          "L'objectif est rempli !",
   "gui.modbloc.withdraw_free":          "Récupérer la récompense",
-  "gui.modbloc.withdraw_paid":          "Effectuer la transaction"
+  "gui.modbloc.withdraw_paid":          "Effectuer la transaction",
+  "gui.modbloc.function_label":         "Fonction :"
 }

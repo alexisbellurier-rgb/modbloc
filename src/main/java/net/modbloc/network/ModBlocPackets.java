@@ -5,7 +5,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
@@ -18,18 +17,36 @@ public class ModBlocPackets {
     // C2S: Setup payload — sent when a creative player confirms the block goal
     // -----------------------------------------------------------------------
 
-    public record SetupPayload(BlockPos pos, int targetAmount, int pricePerStack, int paymentType) implements CustomPayload {
+    public record SetupPayload(
+            BlockPos pos,
+            int targetAmount,
+            int pricePerStack,
+            int paymentType,
+            String functionName
+    ) implements CustomPayload {
 
         public static final Id<SetupPayload> ID = new Id<>(net.minecraft.util.Identifier.of("modbloc", "setup"));
 
-        public static final PacketCodec<RegistryByteBuf, SetupPayload> CODEC =
-                PacketCodec.tuple(
-                        BlockPos.PACKET_CODEC, SetupPayload::pos,
-                        PacketCodecs.VAR_INT,   SetupPayload::targetAmount,
-                        PacketCodecs.VAR_INT,   SetupPayload::pricePerStack,
-                        PacketCodecs.VAR_INT,   SetupPayload::paymentType,
-                        SetupPayload::new
-                );
+        public static final PacketCodec<RegistryByteBuf, SetupPayload> CODEC = new PacketCodec<>() {
+            @Override
+            public SetupPayload decode(RegistryByteBuf buf) {
+                BlockPos pos        = BlockPos.PACKET_CODEC.decode(buf);
+                int amount          = buf.readVarInt();
+                int price           = buf.readVarInt();
+                int payment         = buf.readVarInt();
+                String functionName = buf.readString();
+                return new SetupPayload(pos, amount, price, payment, functionName);
+            }
+
+            @Override
+            public void encode(RegistryByteBuf buf, SetupPayload value) {
+                BlockPos.PACKET_CODEC.encode(buf, value.pos());
+                buf.writeVarInt(value.targetAmount());
+                buf.writeVarInt(value.pricePerStack());
+                buf.writeVarInt(value.paymentType());
+                buf.writeString(value.functionName());
+            }
+        };
 
         @Override
         public Id<? extends CustomPayload> getId() { return ID; }
@@ -60,9 +77,8 @@ public class ModBlocPackets {
                 int amount = payload.targetAmount();
                 if (amount <= 0) return;
 
-                be.setup(targetItem, amount, payload.pricePerStack(), payload.paymentType());
+                be.setup(targetItem, amount, payload.pricePerStack(), payload.paymentType(), payload.functionName());
                 world.updateListeners(pos, world.getBlockState(pos), world.getBlockState(pos), Block.NOTIFY_ALL);
-                // Close setup screen — player reopens the block to get the play-mode screen
                 player.closeHandledScreen();
             });
         });
