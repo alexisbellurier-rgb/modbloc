@@ -48,7 +48,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     public static final int TARGET_SY = 34;
     // Deposit / player inventory left edge: (256 - 9*18) / 2 = 47
     public static final int GRID_LEFT = 47;
-    public static final int DEP_SY    = 82;
+    public static final int DEP_SY    = 90;
     public static final int INV_SY    = 192;
     public static final int HOTBAR_SY = 248;
 
