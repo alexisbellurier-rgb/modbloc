@@ -1,5 +1,6 @@
 {
   "block.modbloc.community_goal_block": "Objective Bloc",
+  "block.modbloc.pokeball_goal_block":  "PokéBall Objective Bloc",
   "gui.modbloc.confirm":                "Confirm",
   "gui.modbloc.deposit":                "Deposit",
   "gui.modbloc.withdraw":               "Take Item",

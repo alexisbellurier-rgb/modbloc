@@ -10,12 +10,18 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 import net.modbloc.block.CommunityGoalBlock;
+import net.modbloc.block.PokeBallGoalBlock;
 
 public class ModBlocBlocks {
 
     public static final Block COMMUNITY_GOAL_BLOCK = register(
             "community_goal_block",
             new CommunityGoalBlock(AbstractBlock.Settings.create().strength(-1, 3600000.0f).luminance(state -> 3))
+    );
+
+    public static final Block POKEBALL_GOAL_BLOCK = register(
+            "pokeball_goal_block",
+            new PokeBallGoalBlock(AbstractBlock.Settings.create().strength(-1, 3600000.0f).luminance(state -> 3))
     );
 
     private static Block register(String name, Block block) {
@@ -26,7 +32,9 @@ public class ModBlocBlocks {
     }
 
     public static void initialize() {
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries ->
-                entries.add(COMMUNITY_GOAL_BLOCK));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> {
+            entries.add(COMMUNITY_GOAL_BLOCK);
+            entries.add(POKEBALL_GOAL_BLOCK);
+        });
     }
 }

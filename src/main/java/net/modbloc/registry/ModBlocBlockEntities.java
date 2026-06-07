@@ -12,7 +12,9 @@ public class ModBlocBlockEntities {
             Registry.register(
                     Registries.BLOCK_ENTITY_TYPE,
                     Identifier.of("modbloc", "community_goal_block_entity"),
-                    BlockEntityType.Builder.create(CommunityGoalBlockEntity::new, ModBlocBlocks.COMMUNITY_GOAL_BLOCK).build()
+                    BlockEntityType.Builder.create(CommunityGoalBlockEntity::new,
+                            ModBlocBlocks.COMMUNITY_GOAL_BLOCK,
+                            ModBlocBlocks.POKEBALL_GOAL_BLOCK).build()
             );
 
     public static void initialize() {}

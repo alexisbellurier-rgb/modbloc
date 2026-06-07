@@ -1,5 +1,6 @@
 {
   "block.modbloc.community_goal_block": "Bloc d'objectif",
+  "block.modbloc.pokeball_goal_block":  "Bloc Poké-Objectif",
   "gui.modbloc.confirm":                "Confirmer",
   "gui.modbloc.deposit":                "Déposer",
   "gui.modbloc.withdraw":               "Prendre l'objet",

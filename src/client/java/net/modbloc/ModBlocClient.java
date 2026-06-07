@@ -23,5 +23,6 @@ public class ModBlocClient implements ClientModInitializer {
         );
 
         BlockRenderLayerMap.INSTANCE.putBlock(ModBlocBlocks.COMMUNITY_GOAL_BLOCK, RenderLayer.getCutout());
+        BlockRenderLayerMap.INSTANCE.putBlock(ModBlocBlocks.POKEBALL_GOAL_BLOCK, RenderLayer.getCutout());
     }
 }
