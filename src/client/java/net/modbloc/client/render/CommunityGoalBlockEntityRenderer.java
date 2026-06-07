@@ -20,7 +20,11 @@ public class CommunityGoalBlockEntityRenderer implements BlockEntityRenderer<Com
 
     private static final float BAR_HALF_W = 0.48f;
     private static final float BAR_HALF_H = 0.048f;
-    private static final float BAR_INSET  = 0.006f;
+    private static final float BAR_INSET  = 0.007f;
+    // Background z-extent; fill extends beyond it so its front face is
+    // always closer to the camera than the background's front face.
+    private static final float BG_Z   = 0.004f;
+    private static final float FILL_Z = 0.008f;
 
     private final ItemRenderer itemRenderer;
     private final TextRenderer textRenderer;
@@ -42,11 +46,11 @@ public class CommunityGoalBlockEntityRenderer implements BlockEntityRenderer<Com
         boolean reached = entity.isGoalReached();
         float angle     = entity.renderAngle + tickDelta * 1.5f;
 
-        // ── Floating rotating item (bigger, lower) ────────────────────────────
+        // ── Floating rotating item ────────────────────────────────────────────
         matrices.push();
-        matrices.translate(0.5, 1.05, 0.5);
+        matrices.translate(0.5, 0.85, 0.5);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(angle));
-        matrices.scale(1.5f, 1.5f, 1.5f);
+        matrices.scale(1.2f, 1.2f, 1.2f);
         itemRenderer.renderItem(targetItem, ModelTransformationMode.GROUND,
                 LightmapTextureManager.MAX_LIGHT_COORDINATE, overlay,
                 matrices, vertexConsumers, entity.getWorld(), 0);
@@ -54,37 +58,39 @@ public class CommunityGoalBlockEntityRenderer implements BlockEntityRenderer<Com
 
         var rotation = MinecraftClient.getInstance().getEntityRenderDispatcher().getRotation();
 
-        // ── Progress bar (wider, taller, lower) ──────────────────────────────
+        // ── Progress bar ──────────────────────────────────────────────────────
         matrices.push();
-        matrices.translate(0.5, 1.52, 0.5);
+        matrices.translate(0.5, 1.40, 0.5);
         matrices.multiply(rotation);
 
         float pct = target > 0 ? Math.min(1f, (float) current / target) : 0f;
         var buf = vertexConsumers.getBuffer(RenderLayer.getDebugFilledBox());
 
-        // Background
+        // Background: z from -BG_Z to +BG_Z
         WorldRenderer.renderFilledBox(matrices, buf,
-                -BAR_HALF_W, -BAR_HALF_H, -0.002f,
-                 BAR_HALF_W,  BAR_HALF_H,  0.002f,
-                0.08f, 0.08f, 0.08f, 0.80f);
+                -BAR_HALF_W, -BAR_HALF_H, -BG_Z,
+                 BAR_HALF_W,  BAR_HALF_H,  BG_Z,
+                0.08f, 0.08f, 0.08f, 0.85f);
 
-        // Fill
+        // Fill: z from -FILL_Z to +FILL_Z — extends beyond background so its
+        // front face is closer to the camera than the background's front face,
+        // guaranteeing it passes the LEQUAL depth test and renders on top.
         if (pct > 0) {
             float fillRight = -BAR_HALF_W + BAR_INSET + (2 * BAR_HALF_W - 2 * BAR_INSET) * pct;
             float fr = reached ? 0.27f : 0.23f;
             float fg = reached ? 0.73f : 0.47f;
             float fb = reached ? 0.40f : 0.80f;
             WorldRenderer.renderFilledBox(matrices, buf,
-                    -BAR_HALF_W + BAR_INSET, -BAR_HALF_H + BAR_INSET, -0.001f,
-                     fillRight,               BAR_HALF_H - BAR_INSET,   0.001f,
-                    fr, fg, fb, 0.90f);
+                    -BAR_HALF_W + BAR_INSET, -BAR_HALF_H + BAR_INSET, -FILL_Z,
+                     fillRight,               BAR_HALF_H - BAR_INSET,   FILL_Z,
+                    fr, fg, fb, 0.95f);
         }
 
         matrices.pop();
 
         // ── Progress text ─────────────────────────────────────────────────────
         matrices.push();
-        matrices.translate(0.5, 1.64, 0.5);
+        matrices.translate(0.5, 1.54, 0.5);
         matrices.multiply(rotation);
         float scale = 0.025f;
         matrices.scale(-scale, -scale, scale);
