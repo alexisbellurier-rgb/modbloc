@@ -10,10 +10,12 @@
   "gui.modbloc.payment_free":           "Gratuit",
   "gui.modbloc.payment_cobbledollars":  "CobbleDollars",
   "gui.modbloc.payment_emeralds":       "Émeraudes",
-  "gui.modbloc.price_display_dollars":  "Prix : %s $",
-  "gui.modbloc.price_display_emeralds": "Prix : %s émeraude(s)",
+  "gui.modbloc.price_display_dollars":  "Prix d'un stack : %s $",
+  "gui.modbloc.price_display_emeralds": "Prix d'un stack : %s émeraude(s)",
   "gui.modbloc.deposit_section":        "Dépôt :",
   "gui.modbloc.goal_reached":           "Objectif atteint ! Prenez à volonté.",
   "gui.modbloc.not_configured":         "Ce bloc n'est pas encore configuré.",
-  "gui.modbloc.goal_complete":          "L'objectif est rempli !"
+  "gui.modbloc.goal_complete":          "L'objectif est rempli !",
+  "gui.modbloc.withdraw_free":          "Récupérer la récompense",
+  "gui.modbloc.withdraw_paid":          "Effectuer la transaction"
 }
