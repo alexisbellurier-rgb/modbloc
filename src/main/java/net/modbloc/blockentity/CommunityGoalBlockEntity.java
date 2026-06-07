@@ -15,6 +15,9 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.network.listener.ClientPlayPacketListener;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -224,6 +227,11 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
     @Override
     public NbtCompound toInitialChunkDataNbt(RegistryWrapper.WrapperLookup registries) {
         return createNbt(registries);
+    }
+
+    @Override
+    public Packet<ClientPlayPacketListener> toUpdatePacket() {
+        return BlockEntityUpdateS2CPacket.create(this);
     }
 
     public boolean canPlayerUse(PlayerEntity player) {

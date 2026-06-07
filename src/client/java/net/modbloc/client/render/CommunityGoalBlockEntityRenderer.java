@@ -18,9 +18,9 @@ import org.joml.Matrix4f;
 
 public class CommunityGoalBlockEntityRenderer implements BlockEntityRenderer<CommunityGoalBlockEntity> {
 
-    private static final float BAR_HALF_W = 0.30f;
-    private static final float BAR_HALF_H = 0.025f;
-    private static final float BAR_INSET  = 0.004f;
+    private static final float BAR_HALF_W = 0.48f;
+    private static final float BAR_HALF_H = 0.048f;
+    private static final float BAR_INSET  = 0.006f;
 
     private final ItemRenderer itemRenderer;
     private final TextRenderer textRenderer;
@@ -42,22 +42,21 @@ public class CommunityGoalBlockEntityRenderer implements BlockEntityRenderer<Com
         boolean reached = entity.isGoalReached();
         float angle     = entity.renderAngle + tickDelta * 1.5f;
 
-        // ── Floating rotating item ────────────────────────────────────────────
+        // ── Floating rotating item (bigger, lower) ────────────────────────────
         matrices.push();
-        matrices.translate(0.5, 1.25, 0.5);
+        matrices.translate(0.5, 1.05, 0.5);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(angle));
-        matrices.scale(0.5f, 0.5f, 0.5f);
+        matrices.scale(1.5f, 1.5f, 1.5f);
         itemRenderer.renderItem(targetItem, ModelTransformationMode.GROUND,
                 LightmapTextureManager.MAX_LIGHT_COORDINATE, overlay,
                 matrices, vertexConsumers, entity.getWorld(), 0);
         matrices.pop();
 
-        // Billboard rotation shared by bar and text
         var rotation = MinecraftClient.getInstance().getEntityRenderDispatcher().getRotation();
 
-        // ── Progress bar (billboard) ──────────────────────────────────────────
+        // ── Progress bar (wider, taller, lower) ──────────────────────────────
         matrices.push();
-        matrices.translate(0.5, 1.56, 0.5);
+        matrices.translate(0.5, 1.52, 0.5);
         matrices.multiply(rotation);
 
         float pct = target > 0 ? Math.min(1f, (float) current / target) : 0f;
@@ -83,9 +82,9 @@ public class CommunityGoalBlockEntityRenderer implements BlockEntityRenderer<Com
 
         matrices.pop();
 
-        // ── Progress text (billboard) ─────────────────────────────────────────
+        // ── Progress text ─────────────────────────────────────────────────────
         matrices.push();
-        matrices.translate(0.5, 1.66, 0.5);
+        matrices.translate(0.5, 1.64, 0.5);
         matrices.multiply(rotation);
         float scale = 0.025f;
         matrices.scale(-scale, -scale, scale);
