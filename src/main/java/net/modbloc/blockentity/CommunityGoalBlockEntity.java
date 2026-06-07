@@ -217,7 +217,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
 
     @Override
     public CommunityGoalScreenHandler.OpenData getScreenOpeningData(ServerPlayerEntity player) {
-        return new CommunityGoalScreenHandler.OpenData(this.pos, this.isSetup);
+        return new CommunityGoalScreenHandler.OpenData(this.pos, this.isSetup, this.isGoalReached());
     }
 
     @Override

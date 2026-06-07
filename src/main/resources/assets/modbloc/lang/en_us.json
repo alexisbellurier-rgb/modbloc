@@ -1,5 +1,5 @@
 {
-  "block.modbloc.community_goal_block": "Community Goal Block",
+  "block.modbloc.community_goal_block": "Objective Bloc",
   "gui.modbloc.confirm":                "Confirm",
   "gui.modbloc.deposit":                "Deposit",
   "gui.modbloc.withdraw":               "Take Item",
@@ -14,5 +14,6 @@
   "gui.modbloc.price_display_emeralds": "Price: %s emerald(s)",
   "gui.modbloc.deposit_section":        "Deposit:",
   "gui.modbloc.goal_reached":           "Goal reached! Take unlimited items.",
-  "gui.modbloc.not_configured":         "This block has not been configured yet."
+  "gui.modbloc.not_configured":         "This block has not been configured yet.",
+  "gui.modbloc.goal_complete":          "Objective complete!"
 }

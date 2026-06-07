@@ -213,7 +213,7 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
         } else if (!goalReached) {
             drawPlayContent(ctx, cx, current, target, targetItem);
         } else {
-            drawGoalReachedContent(ctx, cx, current, target, price, paymentType, targetItem);
+            drawGoalReachedContent(ctx, cx, price, paymentType, targetItem);
         }
     }
 
@@ -264,7 +264,6 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
     // ── Goal-reached content ──────────────────────────────────────────────────
 
     private void drawGoalReachedContent(DrawContext ctx, int cx,
-                                         int current, int target,
                                          int price, int paymentType,
                                          ItemStack targetItem) {
         // Item name
@@ -275,11 +274,9 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
 
         separator(ctx, 56);
 
-        // Progress bar (green, full)
-        drawBar(ctx, cx, 64, current, target, true);
-
-        String prog = current + " / " + target;
-        ctx.drawCenteredTextWithShadow(textRenderer, fit(prog, MAX_TW), cx, 78, C_GREEN);
+        // Goal complete message
+        ctx.drawCenteredTextWithShadow(textRenderer,
+                fit(Text.translatable("gui.modbloc.goal_complete").getString(), MAX_TW), cx, 72, C_GREEN);
 
         // Price line
         if (price > 0 && paymentType != CommunityGoalScreenHandler.PAYMENT_FREE) {
@@ -295,11 +292,11 @@ public class CommunityGoalScreen extends HandledScreen<CommunityGoalScreenHandle
             if (!priceStr.isEmpty()) {
                 int color = paymentType == CommunityGoalScreenHandler.PAYMENT_EMERALDS
                         ? C_GREEN : C_YELLOW;
-                ctx.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 92, color);
+                ctx.drawCenteredTextWithShadow(textRenderer, priceStr, cx, 88, color);
             }
         }
 
-        separator(ctx, 112);
+        separator(ctx, 108);
     }
 
     // ── Drawing helpers ───────────────────────────────────────────────────────

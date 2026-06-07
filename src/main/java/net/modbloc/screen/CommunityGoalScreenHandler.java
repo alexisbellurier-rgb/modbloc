@@ -11,6 +11,7 @@ import net.minecraft.screen.ArrayPropertyDelegate;
 import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.modbloc.blockentity.CommunityGoalBlockEntity;
 import net.modbloc.registry.ModBlocScreenHandlers;
@@ -52,10 +53,11 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     public static final int HOTBAR_SY = 226;
 
     // ── Open data sent server → client ───────────────────────────────────────
-    public record OpenData(BlockPos pos, boolean configured) {
+    public record OpenData(BlockPos pos, boolean configured, boolean goalReached) {
         public static final PacketCodec<RegistryByteBuf, OpenData> CODEC = PacketCodec.tuple(
                 BlockPos.PACKET_CODEC, OpenData::pos,
                 PacketCodecs.BOOL,     OpenData::configured,
+                PacketCodecs.BOOL,     OpenData::goalReached,
                 OpenData::new
         );
     }
@@ -70,6 +72,7 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     private final BlockPos blockPos;
     private final @Nullable CommunityGoalBlockEntity blockEntity;
     private final boolean configured;
+    private final boolean goalReachedAtOpen;
 
     /** Client-side constructor (via ExtendedScreenHandlerType). */
     public CommunityGoalScreenHandler(int syncId, PlayerInventory playerInventory, OpenData openData) {
@@ -79,7 +82,8 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
                 new ArrayPropertyDelegate(PROP_COUNT),
                 openData.pos(),
                 null,
-                openData.configured());
+                openData.configured(),
+                openData.goalReached());
     }
 
     /** Server-side constructor (via BlockEntity.createMenu). */
@@ -91,28 +95,30 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
                 buildDelegate(be),
                 be.getPos(),
                 be,
-                be.isSetup());
+                be.isSetup(),
+                be.isGoalReached());
     }
 
     private CommunityGoalScreenHandler(int syncId, PlayerInventory playerInventory,
                                         SimpleInventory targetSlot, SimpleInventory depositInventory,
                                         PropertyDelegate delegate, BlockPos blockPos,
                                         @Nullable CommunityGoalBlockEntity blockEntity,
-                                        boolean configured) {
+                                        boolean configured, boolean goalReached) {
         super(ModBlocScreenHandlers.COMMUNITY_GOAL, syncId);
-        this.targetSlot      = targetSlot;
+        this.targetSlot       = targetSlot;
         this.depositInventory = depositInventory;
         this.propertyDelegate = delegate;
-        this.blockPos        = blockPos;
-        this.blockEntity     = blockEntity;
-        this.configured      = configured;
+        this.blockPos         = blockPos;
+        this.blockEntity      = blockEntity;
+        this.configured       = configured;
+        this.goalReachedAtOpen = goalReached;
 
         checkSize(targetSlot, 1);
 
         // Slot 0 — target item (centred in the 256 px wide background)
         addSlot(new TargetItemSlot(targetSlot, 0, TARGET_SX, TARGET_SY, this));
 
-        if (configured) {
+        if (configured && !goalReached) {
             checkSize(depositInventory, 27);
             for (int row = 0; row < 3; row++) {
                 for (int col = 0; col < 9; col++) {
@@ -161,7 +167,13 @@ public class CommunityGoalScreenHandler extends ScreenHandler {
     public boolean onButtonClick(PlayerEntity player, int id) {
         if (blockEntity == null) return false;
         return switch (id) {
-            case BUTTON_DEPOSIT  -> { blockEntity.depositItems(player); yield true; }
+            case BUTTON_DEPOSIT -> {
+                blockEntity.depositItems(player);
+                if (blockEntity.isGoalReached() && player instanceof ServerPlayerEntity sp) {
+                    sp.closeHandledScreen();
+                }
+                yield true;
+            }
             case BUTTON_WITHDRAW -> { yield blockEntity.withdrawItem(player); }
             default -> false;
         };
