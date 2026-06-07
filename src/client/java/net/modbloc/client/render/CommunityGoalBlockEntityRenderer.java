@@ -3,7 +3,9 @@ package net.modbloc.client.render;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
 import net.minecraft.client.render.item.ItemRenderer;
@@ -15,6 +17,10 @@ import net.modbloc.blockentity.CommunityGoalBlockEntity;
 import org.joml.Matrix4f;
 
 public class CommunityGoalBlockEntityRenderer implements BlockEntityRenderer<CommunityGoalBlockEntity> {
+
+    private static final float BAR_HALF_W = 0.30f;
+    private static final float BAR_HALF_H = 0.025f;
+    private static final float BAR_INSET  = 0.004f;
 
     private final ItemRenderer itemRenderer;
     private final TextRenderer textRenderer;
@@ -31,35 +37,68 @@ public class CommunityGoalBlockEntityRenderer implements BlockEntityRenderer<Com
         ItemStack targetItem = entity.getTargetItem();
         if (targetItem.isEmpty()) return;
 
-        // --- Floating, rotating item above the block ---
+        int current     = entity.getCurrentAmount();
+        int target      = entity.getTargetAmount();
+        boolean reached = entity.isGoalReached();
+        float angle     = entity.renderAngle + tickDelta * 1.5f;
+
+        // ── Floating rotating item ────────────────────────────────────────────
         matrices.push();
         matrices.translate(0.5, 1.25, 0.5);
-        float angle = entity.renderAngle + tickDelta * 1.5f;
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(angle));
         matrices.scale(0.5f, 0.5f, 0.5f);
-
         itemRenderer.renderItem(targetItem, ModelTransformationMode.GROUND,
-                LightmapTextureManager.MAX_LIGHT_COORDINATE, overlay, matrices, vertexConsumers,
-                entity.getWorld(), 0);
+                LightmapTextureManager.MAX_LIGHT_COORDINATE, overlay,
+                matrices, vertexConsumers, entity.getWorld(), 0);
         matrices.pop();
 
-        // --- Progress text below the item ---
+        // Billboard rotation shared by bar and text
+        var rotation = MinecraftClient.getInstance().getEntityRenderDispatcher().getRotation();
+
+        // ── Progress bar (billboard) ──────────────────────────────────────────
         matrices.push();
-        matrices.translate(0.5, 1.65, 0.5);
-        // Face the camera by billboarding (rotate opposite to default)
-        matrices.multiply(MinecraftClient.getInstance().getEntityRenderDispatcher().getRotation());
+        matrices.translate(0.5, 1.56, 0.5);
+        matrices.multiply(rotation);
+
+        float pct = target > 0 ? Math.min(1f, (float) current / target) : 0f;
+        var buf = vertexConsumers.getBuffer(RenderLayer.getDebugFilledBox());
+
+        // Background
+        WorldRenderer.renderFilledBox(matrices, buf,
+                -BAR_HALF_W, -BAR_HALF_H, -0.002f,
+                 BAR_HALF_W,  BAR_HALF_H,  0.002f,
+                0.08f, 0.08f, 0.08f, 0.80f);
+
+        // Fill
+        if (pct > 0) {
+            float fillRight = -BAR_HALF_W + BAR_INSET + (2 * BAR_HALF_W - 2 * BAR_INSET) * pct;
+            float fr = reached ? 0.27f : 0.23f;
+            float fg = reached ? 0.73f : 0.47f;
+            float fb = reached ? 0.40f : 0.80f;
+            WorldRenderer.renderFilledBox(matrices, buf,
+                    -BAR_HALF_W + BAR_INSET, -BAR_HALF_H + BAR_INSET, -0.001f,
+                     fillRight,               BAR_HALF_H - BAR_INSET,   0.001f,
+                    fr, fg, fb, 0.90f);
+        }
+
+        matrices.pop();
+
+        // ── Progress text (billboard) ─────────────────────────────────────────
+        matrices.push();
+        matrices.translate(0.5, 1.66, 0.5);
+        matrices.multiply(rotation);
         float scale = 0.025f;
         matrices.scale(-scale, -scale, scale);
 
-        String progressText = entity.getCurrentAmount() + " / " + entity.getTargetAmount();
-        int textColor = entity.isGoalReached() ? 0x55FF55 : 0xFFFFFF;
-
+        String progressText = current + " / " + target;
+        int textColor = reached ? 0x55FF55 : 0xFFFFFF;
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        int textLight = LightmapTextureManager.MAX_LIGHT_COORDINATE;
         float textX = -textRenderer.getWidth(progressText) / 2f;
 
         textRenderer.draw(progressText, textX, 0, textColor, false,
-                matrix, vertexConsumers, TextRenderer.TextLayerType.NORMAL, 0, textLight);
+                matrix, vertexConsumers, TextRenderer.TextLayerType.NORMAL, 0,
+                LightmapTextureManager.MAX_LIGHT_COORDINATE);
+
         matrices.pop();
     }
 
