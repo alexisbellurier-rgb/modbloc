@@ -16,6 +16,8 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -86,6 +88,7 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         ItemStack target = getTargetItem();
         if (target.isEmpty()) return;
 
+        int before = currentAmount;
         for (int i = 0; i < depositInventory.size(); i++) {
             ItemStack stack = depositInventory.getStack(i);
             if (stack.isEmpty()) continue;
@@ -101,6 +104,15 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
         }
         markDirty();
         if (world != null) world.updateListeners(pos, getCachedState(), getCachedState(), 3);
+
+        int deposited = currentAmount - before;
+        if (deposited > 0 && world != null) {
+            if (isGoalReached()) {
+                world.playSound(null, pos, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.BLOCKS, 1.0f, 1.0f);
+            } else {
+                world.playSound(null, pos, SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(), SoundCategory.BLOCKS, 1.0f, 1.5f);
+            }
+        }
 
         // Execute the configured Minecraft function the moment the goal is first reached
         if (isGoalReached() && !functionName.isEmpty() && world instanceof ServerWorld sw) {
@@ -233,6 +245,6 @@ public class CommunityGoalBlockEntity extends BlockEntity implements ExtendedScr
 
     @Override
     public Text getDisplayName() {
-        return Text.translatable("block.modbloc.community_goal_block");
+        return Text.translatable(getCachedState().getBlock().getTranslationKey());
     }
 }
